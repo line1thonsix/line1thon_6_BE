@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 로컬 DB 비밀번호 ###
+application-local.properties
