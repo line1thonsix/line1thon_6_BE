@@ -25,3 +25,45 @@
    ```
    - Windows CMD/PowerShell에서는 `gradlew.bat build` 또는 `.\gradlew build`를 사용합니다.
    - IntelliJ에서는 `Team6Application`을 실행해도 됩니다.
+
+## 브랜치 규칙
+
+### 브랜치 구조
+| 브랜치 | 용도 |
+| --- | --- |
+| `main` | 배포용. 안정적으로 동작하는 코드만 유지합니다. 직접 push 금지. |
+| `dev` | 개발 통합 브랜치. 각자 작업한 기능이 모이는 곳입니다. 직접 push 금지. |
+| `feat/기능명` | 새 기능 개발 (예: `feat/login`, `feat/post-crud`) |
+| `fix/버그명` | 버그 수정 (예: `fix/login-error`) |
+| `refactor/대상` | 리팩토링 (예: `refactor/user-service`) |
+
+### 작업 흐름
+1. 최신 `dev`를 받아서 작업 브랜치를 만듭니다.
+   ```bash
+   git checkout dev
+   git pull origin dev
+   git checkout -b feat/기능명
+   ```
+2. 작업 후 커밋하고 내 브랜치를 push합니다.
+   ```bash
+   git add .
+   git commit -m "feat: 로그인 API 구현"
+   git push origin feat/기능명
+   ```
+3. GitHub에서 **`feat/기능명` → `dev`** 로 Pull Request를 생성합니다.
+4. 팀원 1명 이상 리뷰 후 merge합니다. merge된 작업 브랜치는 삭제합니다.
+5. `dev`가 안정적으로 동작하면 **`dev` → `main`** 으로 PR을 올려 merge합니다.
+
+> PR을 올리기 전에 `dev`의 최신 내용을 내 브랜치에 반영(`git pull origin dev`)해서 충돌을 미리 해결해 주세요.
+
+### 커밋 메시지 규칙
+`타입: 내용` 형식으로 작성합니다.
+
+| 타입 | 설명 |
+| --- | --- |
+| `feat` | 새 기능 추가 |
+| `fix` | 버그 수정 |
+| `refactor` | 기능 변화 없는 코드 구조 개선 |
+| `docs` | 문서 수정 (README 등) |
+| `chore` | 빌드 설정, 패키지 등 기타 작업 |
+| `test` | 테스트 코드 추가/수정 |
