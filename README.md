@@ -13,18 +13,27 @@
    - `team6` 데이터베이스는 앱 실행 시 자동으로 생성되므로 직접 만들 필요 없습니다.
 
 2. **DB 계정 설정**
-   - `src/main/resources/application-local.properties.example` 파일을 복사해서
-     같은 위치에 `application-local.properties`로 이름을 바꿉니다.
+   - `config/application-local.properties.example` 파일을 복사해서
+     같은 폴더에 `application-local.properties`로 저장합니다.
    - 본인 MySQL 계정(username / password)을 입력합니다.
-   - 이 파일은 `.gitignore`에 등록되어 있어 깃허브에 올라가지 않습니다. **절대 `git add -f`로 올리지 마세요.**
+   - 이 파일은 `.gitignore`에 등록되어 있어 깃허브에 올라가지 않고 jar에도 포함되지 않습니다. **절대 `git add -f`로 올리지 마세요.**
+   - 예전 위치(`src/main/resources/`)에 이 파일이 있다면 `config/`로 옮겨 주세요. 예전 위치의 파일은 더 이상 읽지 않습니다.
 
 3. **빌드 및 실행**
    ```bash
-   ./gradlew build     # 빌드 + 테스트 (MySQL이 켜져 있어야 통과)
-   ./gradlew bootRun   # 서버 실행 (http://localhost:8080)
+   ./gradlew build     # 빌드 + 테스트 (H2 인메모리 DB를 사용하므로 MySQL 불필요)
+   ./gradlew bootRun   # 서버 실행 (http://localhost:8080, MySQL 필요)
    ```
    - Windows CMD/PowerShell에서는 `gradlew.bat build` 또는 `.\gradlew build`를 사용합니다.
-   - IntelliJ에서는 `Team6Application`을 실행해도 됩니다.
+   - IntelliJ에서는 `Team6Application`을 실행해도 됩니다. 작업 디렉터리는 프로젝트 루트여야 합니다.
+
+## 실행 환경
+
+| 프로필 | 사용 시점 | DB 접속 정보 | 스키마 |
+| --- | --- | --- | --- |
+| `dev` | 프로필을 지정하지 않은 로컬 실행 | `config/application-local.properties` | 앱이 자동 변경 (`update`) |
+| `prod` | 배포 (`SPRING_PROFILES_ACTIVE=prod`) | 환경변수 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | 검증만 함 (`validate`) |
+| `test` | 테스트 실행 시 자동 적용 | H2 인메모리 DB | 테스트마다 생성 후 삭제 (`create-drop`) |
 
 ## 브랜치 규칙
 
