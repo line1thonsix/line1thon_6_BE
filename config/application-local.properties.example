@@ -1,0 +1,3 @@
+# 이 파일을 복사해서 같은 폴더에 application-local.properties로 저장하고 본인 MySQL 계정을 입력하세요.
+spring.datasource.username=root
+spring.datasource.password=본인_비밀번호

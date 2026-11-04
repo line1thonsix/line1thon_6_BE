@@ -38,3 +38,7 @@ out/
 
 ### 로컬 DB 비밀번호 ###
 application-local.properties
+.env
+
+### macOS ###
+.DS_Store
