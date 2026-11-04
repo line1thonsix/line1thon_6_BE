@@ -33,6 +33,11 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+// 예전 위치에 남은 로컬 계정 파일이 jar에 들어가지 않도록 제외
+tasks.named('processResources') {
+	exclude 'application-local.properties'
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
 }
