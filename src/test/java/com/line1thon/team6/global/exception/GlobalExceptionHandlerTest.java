@@ -74,6 +74,22 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void 없는_URL은_API_NOT_FOUND로_응답한다() throws Exception {
+        mockMvc.perform(get("/test/no-such-path"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("API_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value(GlobalErrorCode.API_NOT_FOUND.getMessage()));
+    }
+
+    @Test
+    void 지원하지_않는_메서드는_METHOD_NOT_ALLOWED로_응답한다() throws Exception {
+        mockMvc.perform(get("/test/valid"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"))
+                .andExpect(jsonPath("$.message").value(GlobalErrorCode.METHOD_NOT_ALLOWED.getMessage()));
+    }
+
+    @Test
     void 예상하지_못한_예외는_INTERNAL_ERROR로_응답하고_원인을_노출하지_않는다() throws Exception {
         mockMvc.perform(get("/test/unexpected"))
                 .andExpect(status().isInternalServerError())

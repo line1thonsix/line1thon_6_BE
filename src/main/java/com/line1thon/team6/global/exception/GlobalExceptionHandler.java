@@ -3,6 +3,7 @@ package com.line1thon.team6.global.exception;
 import com.line1thon.team6.global.common.RequestIdFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -54,15 +55,27 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception e, Object body, HttpHeaders headers,
                                                              HttpStatusCode status, WebRequest request) {
-        GlobalErrorCode errorCode = status.is5xxServerError()
-                ? GlobalErrorCode.INTERNAL_ERROR
-                : GlobalErrorCode.INVALID_INPUT;
+        GlobalErrorCode errorCode = toErrorCode(status);
         if (status.is5xxServerError()) {
             log.error("Spring MVC 처리 중 오류 [{}]", RequestIdFilter.current(), e);
         }
         ErrorResponse errorBody = new ErrorResponse(
                 errorCode.getCode(), errorCode.getMessage(), RequestIdFilter.current());
         return ResponseEntity.status(status).headers(headers).body(errorBody);
+    }
+
+    /** Spring MVC가 정한 상태 코드를 공통 오류 코드로 바꾼다 */
+    private GlobalErrorCode toErrorCode(HttpStatusCode status) {
+        if (status.is5xxServerError()) {
+            return GlobalErrorCode.INTERNAL_ERROR;
+        }
+        if (status.value() == HttpStatus.NOT_FOUND.value()) {
+            return GlobalErrorCode.API_NOT_FOUND;
+        }
+        if (status.value() == HttpStatus.METHOD_NOT_ALLOWED.value()) {
+            return GlobalErrorCode.METHOD_NOT_ALLOWED;
+        }
+        return GlobalErrorCode.INVALID_INPUT;
     }
 
     private ResponseEntity<ErrorResponse> toResponse(ErrorCode errorCode, String message) {
