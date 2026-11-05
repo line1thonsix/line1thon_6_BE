@@ -60,7 +60,7 @@
    git push origin feat/기능명
    ```
 3. GitHub에서 **`feat/기능명` → `dev`** 로 Pull Request를 생성합니다.
-4. 팀원 1명 이상 리뷰 후 merge합니다. merge된 작업 브랜치는 삭제합니다.
+4. CI(빌드와 테스트)가 통과하고 팀원 1명 이상 리뷰한 뒤 merge합니다. merge된 작업 브랜치는 삭제합니다.
 5. `dev`가 안정적으로 동작하면 **`dev` → `main`** 으로 PR을 올려 merge합니다.
 
 > PR을 올리기 전에 `dev`의 최신 내용을 내 브랜치에 반영(`git pull origin dev`)해서 충돌을 미리 해결해 주세요.
