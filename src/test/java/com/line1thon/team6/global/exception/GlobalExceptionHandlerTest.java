@@ -1,6 +1,7 @@
 package com.line1thon.team6.global.exception;
 
 import com.line1thon.team6.global.common.RequestIdFilter;
+import com.line1thon.team6.session.service.GuestSessionService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,6 +29,10 @@ class GlobalExceptionHandlerTest {
 
     @Autowired
     MockMvc mockMvc;
+
+    /** WebConfig의 토큰 인터셉터가 필요로 해서 등록 (/test/** 경로는 인증 대상이 아님) */
+    @MockitoBean
+    GuestSessionService guestSessionService;
 
     @Test
     void 비즈니스_예외는_정해진_상태와_코드로_응답한다() throws Exception {
