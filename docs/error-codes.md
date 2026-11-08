@@ -35,7 +35,7 @@ API가 돌려주는 오류 코드 목록입니다. 코드의 `ErrorCode` enum과
 | 404 | `CHAT_NOT_FOUND` | 없거나 다른 사람의 대화 |
 | 404 | `API_NOT_FOUND` | 없는 URL |
 | 405 | `METHOD_NOT_ALLOWED` | URL은 있지만 지원하지 않는 HTTP 메서드 |
-| 429 | `RATE_LIMITED` | 질문 생성이 게스트당 하루 30회를 넘음 (한국 시간 자정 기준) |
+| 429 | `RATE_LIMITED` | 질문 생성이 게스트당 하루 30회를 넘음 (한국 시간 자정 기준). **MVP 제외** |
 | 500 | `INTERNAL_ERROR` | 서버 오류 |
 
 ## API별 오류
@@ -51,8 +51,8 @@ API가 돌려주는 오류 코드 목록입니다. 코드의 `ErrorCode` enum과
 | 409 | `ALREADY_SUBMITTED` | 이미 분석 작업이 있음. 생각 제출 후 기초 학습, 기초 학습 후 생각 제출, 작업이 있는데(진행 중이거나 완료) 힌트 요청 | `/thoughts`, `/basic-mode`, `/hints` | A, B |
 | 409 | `NOT_RETRYABLE` | 분석 작업이 `FAILED`가 아닌데 재시도 (`PENDING` 또는 `DONE`) | `POST /chats/{chatId}/analysis/retry` | B |
 | 409 | `RETRY_LIMIT_EXCEEDED` | 첫 시도를 포함해 3회 모두 실패 | `POST /chats/{chatId}/analysis/retry` | B |
-| 409 | `ANALYSIS_NOT_DONE` | 잠금이 풀리기 전에 회고 저장 | `POST /chats/{chatId}/reflections` | A |
-| 409 | `CHAT_ALREADY_UNLOCKED` | 잠금이 풀린 뒤 막힌 지점 변경 (MVP 포함 여부는 회의 결과에 따름) | `PATCH /chats/{chatId}/stuck-point` | A |
+| 409 | `ANALYSIS_NOT_DONE` | 잠금이 풀리기 전에 회고 저장. **MVP 제외** | `POST /chats/{chatId}/reflections` | A |
+| 409 | `CHAT_ALREADY_UNLOCKED` | 잠금이 풀린 뒤 막힌 지점 변경. **MVP 제외** | `PATCH /chats/{chatId}/stuck-point` | A |
 
 같은 요청을 다시 보낸 경우는 오류가 아닙니다.
 
@@ -73,7 +73,7 @@ AI 호출이 실패해도 API는 오류로 응답하지 않습니다. 실패는 
 
 | 코드 | 상황 |
 | --- | --- |
-| `AI_TIMEOUT` | 제한 시간 안에 응답이 오지 않음 (내부 재호출 포함). 오래 멈춘 작업을 실패로 바꿀 때도 사용 |
+| `AI_TIMEOUT` | AI 호출이 15초 안에 응답하지 않음 (호출마다 15초, 내부 재호출 포함). 오래 멈춘 작업을 실패로 바꿀 때도 사용 |
 | `AI_INVALID_JSON` | 응답이 AI 출력 형식에 맞지 않음 (내부 재호출 포함) |
 | `AI_API_ERROR` | AI 제공사 API 오류 (인증, 사용량 초과, 서버 오류 등) |
 
