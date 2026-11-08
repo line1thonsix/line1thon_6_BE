@@ -13,6 +13,7 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 | 원문 인용 검증 | `user_quote`는 사용자가 쓴 생각에 그대로 있는 연속된 문자열이어야 합니다. 서버가 확인합니다. |
 | 점수 | 사용자의 이해도나 노력을 점수로 매기지 않습니다. |
 | 형식 오류 | 검증에 실패하면 내부에서 한 번 다시 호출하고, 또 실패하면 `AI_INVALID_JSON`으로 작업을 실패 처리합니다. 검증하지 않은 결과는 응답하지 않습니다. |
+| 시연 데이터 | 예시 질문의 저장 응답(`src/main/resources/demo/`, `isDemo: true`)도 이 문서의 AI 출력 형식으로 만들고, 실제 응답과 같은 검증을 거칩니다. 형식이 다르면 시연 중에 화면이 깨집니다. |
 
 ## 1. 질문 생성 (PREPARE)
 
@@ -32,7 +33,7 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 
 | 필드 | 타입 | 규칙 |
 | --- | --- | --- |
-| `question_type` | string | `CONCEPT`, `DEBUGGING`, `PROBLEM_SOLVING`, `DESIGN` 중 하나. 사용자가 `FREE`로 보냈을 때 AI가 정합니다. |
+| `question_type` | string | `CONCEPT`, `DEBUGGING`, `PROBLEM_SOLVING`, `DESIGN` 중 하나. 항상 출력합니다. B는 사용자가 `FREE`로 보냈을 때만 이 값을 `type`으로 쓰고, 유형을 골랐으면 무시합니다. |
 | `choices` | string[] | 정확히 3개. 짧은 구절 |
 | `example_sentence` | string | 1개 |
 | `hints` | string[] | 정확히 2개. 1단계보다 2단계가 더 구체적 |
@@ -91,15 +92,18 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 
 B는 분류별 배열을 하나의 `findings` 배열로 펼쳐 `analysis_job.findings`에 저장하고, 그대로 `GET /chats/{chatId}/analysis`의 `findings`로 응답합니다.
 
-| AI 분류 | `category` | `userQuote` | `detail` | `followUpQuestion` |
-| --- | --- | --- | --- | --- |
-| `common` | `COMMON` | `user_quote` | `ai_view`, `reason` | |
-| `supplement` | `COMPLEMENT` | `user_quote` (`""`면 `null`) | `ai_view`, `reason` | |
-| `unique` | `UNIQUE` | `user_quote` | `reason` | |
-| `error` | `CONFLICT` | `user_quote` | `conflict`, `how_to_check` | |
-| `judgment_hold` (`status: true`일 때만) | `UNDETERMINED` | `null` | `reason` | `follow_up_question` |
+Figma 08번 화면은 "내 생각" 칸과 "AI 참고 관점" 칸이 나뉘어 있습니다. 그래서 AI의 관점(`ai_view`, `conflict`)은 `aiPerspective`에, 근거(`reason`, `how_to_check`)는 `detail`에 따로 담습니다. 지금 DB 스키마와 API 명세의 항목에는 `aiPerspective`가 없어 추가가 필요합니다 (협의 P8).
 
-`title`은 API와 DB에 있지만 AI 출력에는 없습니다 (협의 P3).
+| AI 분류 | `category` | `userQuote` | `aiPerspective` | `detail` | `followUpQuestion` |
+| --- | --- | --- | --- | --- | --- |
+| `common` | `COMMON` | `user_quote` | `ai_view` | `reason` | |
+| `supplement` | `COMPLEMENT` | `user_quote` (`""`면 `null`) | `ai_view` | `reason` | |
+| `unique` | `UNIQUE` | `user_quote` | `null` | `reason` | |
+| `error` | `CONFLICT` | `user_quote` | `conflict` | `how_to_check` | |
+| `judgment_hold` (`status: true`일 때만) | `UNDETERMINED` | `null` | `null` | `reason` | `follow_up_question` |
+
+- `title`은 API와 DB에 있지만 AI 출력에는 없습니다 (협의 P3).
+- 응답의 `findings[].id`는 뺍니다. 판정 이의 제기가 MVP에서 빠져 항목을 가리킬 일이 없습니다. B 담당인 분석 결과 조회 API 명세에서도 함께 지웁니다.
 
 ## 3. 기초 설명 (BASIC)
 
@@ -124,9 +128,9 @@ DB는 `analysis_job.basic_explanation` (TEXT) 하나, API는 `basicExplanation` 
 ## 4. B의 검증 순서
 
 1. JSON으로 파싱합니다.
-2. 필수 필드, 타입, 개수(`choices` 3개, `hints` 2개)를 확인합니다.
+2. 필수 필드, 타입, 개수(`choices` 3개, `hints` 2개)를 확인합니다. 비교 분석의 `judgment_hold`는 `status`가 불린인지 보고, `true`이면 `reason`과 `follow_up_question`이 비어 있지 않은지 확인합니다.
 3. enum 값(`question_type`)을 확인합니다.
-4. 비교 분석이면 `user_quote`가 사용자 생각에 그대로 있는지 확인합니다. 없는 인용은 항목을 버릴지, 전체를 실패로 볼지 정해야 합니다 (협의 P6).
+4. 비교 분석이면 `user_quote`가 사용자 생각에 그대로 있는지 확인합니다. `supplement`의 빈 문자열(`""`)은 인용이 없다는 뜻이라 검사하지 않습니다. 없는 인용은 항목을 버릴지, 전체를 실패로 볼지 정해야 합니다 (협의 P6).
 5. 하나라도 실패하면 한 번 다시 호출하고, 다시 실패하면 `AI_INVALID_JSON`으로 처리합니다.
 
 ## 협의할 것
@@ -140,3 +144,4 @@ DB는 `analysis_job.basic_explanation` (TEXT) 하나, API는 `basicExplanation` 
 | P5 | 판단 보류의 개수 | AI 출력은 객체 하나(최대 1개)이고, API는 `UNDETERMINED` 항목을 여러 개 담을 수 있습니다. | 다른 분류처럼 배열로 맞춥니다. | AI 담당 |
 | P6 | 원문에 없는 인용 | 검증에 실패한 항목의 처리가 정해지지 않았습니다. | 그 항목만 버리고, 남은 항목이 없으면 다시 호출합니다. | AI 담당 |
 | P7 | 근거 펼침 (Figma 08-1~08-5) | Figma에는 "직접 확인하는 방법"과 코드 예시가 있지만, AI 출력에는 `error`의 `how_to_check`만 있습니다. | MVP는 `how_to_check`만 쓰고, 다른 분류는 `reason`을 근거로 보여 줍니다. | AI 담당, 프론트 |
+| P8 | 비교 항목의 `aiPerspective` | Figma는 "내 생각"과 "AI 참고 관점"을 나눠 보여 주는데, DB의 `findings`와 API 응답에는 AI 관점을 담을 필드가 없습니다. | `findings` 항목에 `aiPerspective`를 추가합니다. `findings`가 JSON 컬럼이라 테이블 변경은 없고 DB 스키마 문서와 API 명세만 고치면 됩니다. | A, 프론트 |
