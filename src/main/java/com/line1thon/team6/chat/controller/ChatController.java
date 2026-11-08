@@ -2,6 +2,7 @@ package com.line1thon.team6.chat.controller;
 
 import com.line1thon.team6.chat.dto.ChatCreateRequest;
 import com.line1thon.team6.chat.dto.ChatCreateResponse;
+import com.line1thon.team6.chat.dto.PrepareRetryResponse;
 import com.line1thon.team6.chat.service.ChatService;
 import com.line1thon.team6.session.auth.CurrentSession;
 import com.line1thon.team6.session.entity.GuestSession;
@@ -9,9 +10,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,5 +30,12 @@ public class ChatController {
                                                      @Valid @RequestBody ChatCreateRequest request) {
         ChatService.CreateResult result = chatService.create(session, request);
         return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK).body(result.response());
+    }
+
+    /** 선생성 재시도. FAILED일 때만 가능, 결과는 GET /api/chats/{chatId} 폴링으로 확인 */
+    @PostMapping("/{chatId}/prepare/retry")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public PrepareRetryResponse retryPrepare(@CurrentSession GuestSession session, @PathVariable Long chatId) {
+        return chatService.retryPrepare(session, chatId);
     }
 }

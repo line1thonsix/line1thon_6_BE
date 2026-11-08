@@ -121,6 +121,39 @@ public class Chat {
         return chat;
     }
 
+    /**
+     * 선생성 성공 (전이 T1, T2): 결과를 저장하고 DONE.
+     * PREPARING이 아니면(예: 1분이 지나 이미 FAILED) 늦게 온 결과라서 반영하지 않고 false를 돌려준다.
+     */
+    public boolean completePrepare(List<String> choices, List<String> hints, String referenceAnswer) {
+        if (choices == null || choices.size() != 3) {
+            throw new IllegalArgumentException("칩은 3개여야 합니다: " + (choices == null ? null : choices.size()));
+        }
+        if (hints == null || hints.size() != 2) {
+            throw new IllegalArgumentException("힌트는 2개여야 합니다: " + (hints == null ? null : hints.size()));
+        }
+        if (referenceAnswer == null || referenceAnswer.isBlank()) {
+            throw new IllegalArgumentException("기준 답변이 비어 있습니다");
+        }
+        if (prepareStatus != PrepareStatus.PREPARING) {
+            return false;
+        }
+        this.choices = List.copyOf(choices);
+        this.hints = List.copyOf(hints);
+        this.referenceAnswer = referenceAnswer;
+        this.prepareStatus = PrepareStatus.DONE;
+        return true;
+    }
+
+    /** 선생성 실패 (전이 T1, T2): FAILED. PREPARING이 아니면 반영하지 않고 false */
+    public boolean failPrepare() {
+        if (prepareStatus != PrepareStatus.PREPARING) {
+            return false;
+        }
+        this.prepareStatus = PrepareStatus.FAILED;
+        return true;
+    }
+
     @PreUpdate
     void onUpdate() {
         this.updatedAt = KoreaTime.now();
