@@ -44,7 +44,7 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 | --- | --- | --- |
 | `question_type` | `type` | `type` |
 | `choices` | `choices` | `choices` |
-| `example_sentence` | (컬럼 없음, 협의 P2) | `exampleSentence` |
+| `example_sentence` | `example_sentence` | `exampleSentence` |
 | `hints` | `hints` | 공개된 단계만 `POST /hints` 응답의 `hint` |
 | `reference_answer` | `reference_answer` | 잠금이 풀린 뒤에만 `referenceAnswer` |
 
@@ -134,7 +134,7 @@ DB는 `analysis_job.basic_explanation` (TEXT) 하나, API는 `basicExplanation` 
 | # | 내용 | 차이 | B 제안 | 대상 |
 | --- | --- | --- | --- | --- |
 | P1 | AI 결정안의 별도 API와 `session_id` | 결정안에는 `POST /api/question`, `/api/compare`, `/api/hint`, `/api/basic-learning`과 `session_id`, `expires_in_seconds`, `security`가 있습니다. 팀 API 명세서에는 이런 API가 없고 대화는 `chatId`로 구분합니다. | 별도 API 없이 B가 서버 안에서 LLM을 호출합니다. 결정안의 JSON은 프롬프트의 출력 형식으로만 쓰고, `session_id`는 `chatId`로 대신합니다. | AI 담당 |
-| P2 | 질문 생성 출력에 힌트·기준 답변 포함 | 결정안의 질문 생성 출력에는 `hints`와 `reference_answer`가 없고, 힌트는 따로 만듭니다. 팀 명세와 DB는 한 번에 만들어 `chat`에 저장합니다. DB 스키마의 `chat`에는 `example_sentence` 컬럼이 없습니다. | 한 번에 만듭니다 (위 1번 형식). `chat`에 `example_sentence` 컬럼 추가를 A에게 요청합니다. | AI 담당, A |
+| P2 | 질문 생성 출력에 힌트·기준 답변 포함 | 결정안의 질문 생성 출력에는 `hints`와 `reference_answer`가 없고, 힌트는 따로 만듭니다. 팀 명세와 DB는 한 번에 만들어 `chat`에 저장합니다. | 한 번에 만듭니다 (위 1번 형식). | AI 담당, A |
 | P3 | 비교 항목의 `title` | API와 DB에는 `title`이 있는데 AI 출력에는 없습니다. | 모든 분류의 항목에 `title`(짧은 제목)을 추가합니다. | AI 담당 |
 | P4 | 기초 설명 형식 | AI 결정안, DB·API(문자열 하나), Figma(4칸)가 모두 다릅니다. | Figma에 맞춰 칸을 나누고, DB는 JSON으로 저장합니다. API도 객체로 바꿉니다. | AI 담당, A, 프론트 |
 | P5 | 판단 보류의 개수 | AI 출력은 객체 하나(최대 1개)이고, API는 `UNDETERMINED` 항목을 여러 개 담을 수 있습니다. | 다른 분류처럼 배열로 맞춥니다. | AI 담당 |
