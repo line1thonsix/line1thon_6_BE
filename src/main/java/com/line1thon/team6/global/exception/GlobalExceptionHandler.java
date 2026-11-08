@@ -1,6 +1,7 @@
 package com.line1thon.team6.global.exception;
 
 import com.line1thon.team6.global.common.RequestIdFilter;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
@@ -23,14 +25,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     /** 서비스에서 던진 정해진 오류 */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
-        return toResponse(e.getErrorCode(), e.getMessage());
+    public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e, HttpServletRequest request) {
+        ErrorCode errorCode = e.getErrorCode();
+        log.warn("{} {} -> {} {}", request.getMethod(), request.getRequestURI(),
+                errorCode.getStatus().value(), errorCode.getCode());
+        return toResponse(errorCode, e.getMessage());
     }
 
     /** 예상하지 못한 오류 */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
-        log.error("처리하지 못한 예외 [{}]", RequestIdFilter.current(), e);
+        log.error("처리하지 못한 예외", e);
         return toResponse(GlobalErrorCode.INTERNAL_ERROR, GlobalErrorCode.INTERNAL_ERROR.getMessage());
     }
 
@@ -57,7 +62,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                                                              HttpStatusCode status, WebRequest request) {
         GlobalErrorCode errorCode = toErrorCode(status);
         if (status.is5xxServerError()) {
-            log.error("Spring MVC 처리 중 오류 [{}]", RequestIdFilter.current(), e);
+            log.error("Spring MVC 처리 중 오류", e);
+        } else {
+            log.warn("{} {} -> {} {}", servletRequest(request).getMethod(), servletRequest(request).getRequestURI(),
+                    status.value(), errorCode.getCode());
         }
         ErrorResponse errorBody = new ErrorResponse(
                 errorCode.getCode(), errorCode.getMessage(), RequestIdFilter.current());
@@ -76,6 +84,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             return GlobalErrorCode.METHOD_NOT_ALLOWED;
         }
         return GlobalErrorCode.INVALID_INPUT;
+    }
+
+    private HttpServletRequest servletRequest(WebRequest request) {
+        return ((ServletWebRequest) request).getRequest();
     }
 
     private ResponseEntity<ErrorResponse> toResponse(ErrorCode errorCode, String message) {
