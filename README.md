@@ -35,6 +35,38 @@
 | `prod` | 배포 (`SPRING_PROFILES_ACTIVE=prod`) | 환경변수 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | 검증만 함 (`validate`) |
 | `test` | 테스트 실행 시 자동 적용 | H2 인메모리 DB | 테스트마다 생성 후 삭제 (`create-drop`) |
 
+## 패키지 구조
+
+**기능(도메인)별로 패키지를 나눠서 개발합니다.** `controller`, `service`처럼 계층별로 최상위 패키지를 나누지 않습니다.
+
+```
+com.line1thon.team6
+├── session          # 게스트 세션 (토큰 발급, 소유권 확인)
+│   ├── controller
+│   ├── service
+│   ├── repository
+│   ├── entity
+│   └── dto
+├── chat             # 채팅 · 질문 · 생각 제출
+│   ├── controller
+│   ├── service
+│   ├── repository
+│   ├── entity
+│   └── dto
+├── ...              # 기능이 늘어나면 같은 구조로 패키지 추가
+└── global           # 여러 기능이 함께 쓰는 코드
+    ├── config       # 설정 (CORS, Security 등)
+    ├── exception    # 공통 예외, 전역 예외 처리
+    └── common       # 공통 응답 형식, BaseEntity 등
+```
+
+### 규칙
+- 새 기능은 최상위에 기능 이름으로 패키지를 만들고, 그 안에 `controller` / `service` / `repository` / `entity` / `dto`를 둡니다. 필요 없는 하위 패키지는 만들지 않아도 됩니다.
+- 패키지 이름은 소문자 단수형으로 씁니다. (예: `chat`, `session`)
+- 다른 기능의 데이터가 필요하면 그 기능의 `service`를 호출합니다. 다른 기능의 `repository`를 직접 쓰지 않습니다.
+- 두 개 이상의 기능에서 쓰는 코드만 `global`에 둡니다. 한 기능에서만 쓰는 코드는 그 기능 패키지 안에 둡니다.
+- 엔티티를 API 응답으로 그대로 반환하지 않고, `dto`로 변환해서 반환합니다.
+
 ## 브랜치 규칙
 
 ### 브랜치 구조
