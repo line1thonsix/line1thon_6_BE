@@ -73,6 +73,16 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void 지원하지_않는_Content_Type은_400_INVALID_INPUT으로_응답한다() throws Exception {
+        // Spring은 415로 판단하지만, 응답 상태는 문서의 INVALID_INPUT 상태(400)에 맞춘다
+        mockMvc.perform(post("/test/valid")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("name"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+    }
+
+    @Test
     void 필수_헤더가_없으면_INVALID_INPUT으로_응답한다() throws Exception {
         mockMvc.perform(get("/test/header"))
                 .andExpect(status().isBadRequest())

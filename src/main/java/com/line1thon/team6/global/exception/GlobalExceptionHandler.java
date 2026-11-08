@@ -55,7 +55,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     /**
      * 그 밖에 Spring MVC가 처리하는 오류 (JSON 형식 오류, 헤더 누락, 타입 불일치, 없는 경로, 허용하지 않는 메서드 등).
-     * 상태 코드는 Spring이 정한 값을 그대로 쓰고, 형식만 공통 형식으로 맞춘다.
+     * Spring이 정한 상태로 오류 코드를 고르고, 응답 상태는 그 오류 코드의 상태로 맞춘다 (docs/error-codes.md).
+     * 예: Content-Type 오류(Spring 415)는 400 INVALID_INPUT. 실제 원인은 로그에 예외 이름으로 남긴다.
      */
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception e, Object body, HttpHeaders headers,
@@ -64,12 +65,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         if (status.is5xxServerError()) {
             log.error("Spring MVC 처리 중 오류", e);
         } else {
-            log.warn("{} {} -> {} {}", servletRequest(request).getMethod(), servletRequest(request).getRequestURI(),
-                    status.value(), errorCode.getCode());
+            log.warn("{} {} -> {} {} ({})", servletRequest(request).getMethod(), servletRequest(request).getRequestURI(),
+                    errorCode.getStatus().value(), errorCode.getCode(), e.getClass().getSimpleName());
         }
         ErrorResponse errorBody = new ErrorResponse(
                 errorCode.getCode(), errorCode.getMessage(), RequestIdFilter.current());
-        return ResponseEntity.status(status).headers(headers).body(errorBody);
+        return ResponseEntity.status(errorCode.getStatus()).headers(headers).body(errorBody);
     }
 
     /** Spring MVC가 정한 상태 코드를 공통 오류 코드로 바꾼다 */
