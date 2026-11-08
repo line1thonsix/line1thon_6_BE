@@ -1,6 +1,7 @@
 package com.line1thon.team6.session.entity;
 
 import jakarta.persistence.*;
+import com.line1thon.team6.global.common.KoreaTime;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,6 +25,6 @@ public class GuestSession {
 
     public GuestSession(String token) {
         this.token = token;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = KoreaTime.now();
     }
 }
