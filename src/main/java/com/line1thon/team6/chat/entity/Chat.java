@@ -122,10 +122,11 @@ public class Chat {
     }
 
     /**
-     * 선생성 성공 (전이 T1, T2): 결과를 저장하고 DONE.
-     * PREPARING이 아니면(예: 1분이 지나 이미 FAILED) 늦게 온 결과라서 반영하지 않고 false를 돌려준다.
+     * 선생성 결과 형식 검사 (칩 3개, 힌트 2개, 기준 답변).
+     * 상태 변경(PREPARING → DONE/FAILED)은 시간 초과 처리와 겹쳐도 덮어쓰지 않도록
+     * ChatRepository의 조건부 UPDATE로 한다.
      */
-    public boolean completePrepare(List<String> choices, List<String> hints, String referenceAnswer) {
+    public static void validatePrepareResult(List<String> choices, List<String> hints, String referenceAnswer) {
         if (choices == null || choices.size() != 3) {
             throw new IllegalArgumentException("칩은 3개여야 합니다: " + (choices == null ? null : choices.size()));
         }
@@ -135,23 +136,6 @@ public class Chat {
         if (referenceAnswer == null || referenceAnswer.isBlank()) {
             throw new IllegalArgumentException("기준 답변이 비어 있습니다");
         }
-        if (prepareStatus != PrepareStatus.PREPARING) {
-            return false;
-        }
-        this.choices = List.copyOf(choices);
-        this.hints = List.copyOf(hints);
-        this.referenceAnswer = referenceAnswer;
-        this.prepareStatus = PrepareStatus.DONE;
-        return true;
-    }
-
-    /** 선생성 실패 (전이 T1, T2): FAILED. PREPARING이 아니면 반영하지 않고 false */
-    public boolean failPrepare() {
-        if (prepareStatus != PrepareStatus.PREPARING) {
-            return false;
-        }
-        this.prepareStatus = PrepareStatus.FAILED;
-        return true;
     }
 
     @PreUpdate

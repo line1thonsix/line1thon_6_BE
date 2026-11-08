@@ -83,26 +83,31 @@ public class ChatService {
 
     /**
      * 선생성 성공 결과 저장 → DONE. B의 선생성 리스너가 호출한다.
+     * PREPARING일 때만 바꾸는 조건부 UPDATE라서, 조회 API가 시간 초과로 FAILED로 바꾸는 것과 겹쳐도 덮어쓰지 않는다.
      * PREPARING이 아니면(예: 1분이 지나 이미 FAILED) 늦게 온 결과라서 버린다.
      * 리스너는 백그라운드라 예외를 받아도 처리할 곳이 없어서, 이 경우는 예외 대신 로그만 남긴다.
      */
     @Transactional
     public void completePrepare(Long chatId, List<String> choices, List<String> hints, String referenceAnswer) {
-        chatRepository.findById(chatId).ifPresentOrElse(chat -> {
-            if (!chat.completePrepare(choices, hints, referenceAnswer)) {
-                log.warn("선생성 결과를 버림: PREPARING이 아님 chatId={} prepareStatus={}", chatId, chat.getPrepareStatus());
-            }
-        }, () -> log.warn("선생성 결과를 버림: 없는 채팅 chatId={}", chatId));
+        Chat.validatePrepareResult(choices, hints, referenceAnswer);
+        int updated = chatRepository.completePrepareIfPreparing(
+                chatId, List.copyOf(choices), List.copyOf(hints), referenceAnswer, KoreaTime.now());
+        if (updated == 0) {
+            log.warn("선생성 결과를 버림: PREPARING이 아님 chatId={} prepareStatus={}", chatId, prepareStatusOf(chatId));
+        }
     }
 
-    /** 선생성 실패 → FAILED. B의 선생성 리스너가 호출한다. PREPARING이 아니면 무시 */
+    /** 선생성 실패 → FAILED. B의 선생성 리스너가 호출한다. PREPARING이 아니면 무시 (조건부 UPDATE) */
     @Transactional
     public void failPrepare(Long chatId) {
-        chatRepository.findById(chatId).ifPresentOrElse(chat -> {
-            if (!chat.failPrepare()) {
-                log.warn("선생성 실패를 무시함: PREPARING이 아님 chatId={} prepareStatus={}", chatId, chat.getPrepareStatus());
-            }
-        }, () -> log.warn("선생성 실패를 무시함: 없는 채팅 chatId={}", chatId));
+        if (chatRepository.failPrepareIfPreparing(chatId, KoreaTime.now()) == 0) {
+            log.warn("선생성 실패를 무시함: PREPARING이 아님 chatId={} prepareStatus={}", chatId, prepareStatusOf(chatId));
+        }
+    }
+
+    /** 로그용 현재 선생성 상태. 없는 채팅이면 "없음" */
+    private Object prepareStatusOf(Long chatId) {
+        return chatRepository.findById(chatId).<Object>map(Chat::getPrepareStatus).orElse("없음");
     }
 
     /** created가 false면 같은 전송 ID로 이미 있던 대화 (200) */

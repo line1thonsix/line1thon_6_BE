@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface ChatRepository extends JpaRepository<Chat, Long> {
@@ -33,4 +34,40 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
                and c.prepareStatus = com.line1thon.team6.chat.entity.PrepareStatus.FAILED
             """)
     int restartPrepareIfFailed(@Param("id") Long id, @Param("now") LocalDateTime now);
+
+    /**
+     * PREPARING일 때만 결과를 저장하고 DONE으로 바꾼다 (선생성 성공).
+     * 조회 API의 시간 초과 처리(PREPARING → FAILED)와 겹쳐도 먼저 바꾼 쪽만 반영되고 나중 쪽은 0을 받는다.
+     * @return 바뀐 행 수. 0이면 PREPARING이 아니었거나 없는 채팅
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Chat c
+               set c.prepareStatus = com.line1thon.team6.chat.entity.PrepareStatus.DONE,
+                   c.choices = :choices,
+                   c.hints = :hints,
+                   c.referenceAnswer = :referenceAnswer,
+                   c.updatedAt = :now
+             where c.id = :id
+               and c.prepareStatus = com.line1thon.team6.chat.entity.PrepareStatus.PREPARING
+            """)
+    int completePrepareIfPreparing(@Param("id") Long id,
+                                   @Param("choices") List<String> choices,
+                                   @Param("hints") List<String> hints,
+                                   @Param("referenceAnswer") String referenceAnswer,
+                                   @Param("now") LocalDateTime now);
+
+    /**
+     * PREPARING일 때만 FAILED로 바꾼다 (선생성 실패).
+     * @return 바뀐 행 수. 0이면 PREPARING이 아니었거나 없는 채팅
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Chat c
+               set c.prepareStatus = com.line1thon.team6.chat.entity.PrepareStatus.FAILED,
+                   c.updatedAt = :now
+             where c.id = :id
+               and c.prepareStatus = com.line1thon.team6.chat.entity.PrepareStatus.PREPARING
+            """)
+    int failPrepareIfPreparing(@Param("id") Long id, @Param("now") LocalDateTime now);
 }
