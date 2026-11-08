@@ -17,15 +17,13 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 
 ## 1. 질문 생성 (PREPARE)
 
-질문을 받으면 한 번 호출해 칩, 예시 문장, 힌트, 기준 답변, 질문 유형을 함께 만듭니다.
+질문을 받으면 한 번 호출해 칩, 힌트, 기준 답변을 함께 만듭니다. 질문 유형은 사용자가 고른 값(`CONCEPT`, `DEBUGGING`, `PROBLEM_SOLVING`, `DESIGN`)을 입력으로 넘기고, AI는 출력하지 않습니다.
 
 ### AI 출력
 
 ```json
 {
-  "question_type": "DEBUGGING",
   "choices": ["첫 렌더링 때 users 값", "데이터가 도착하는 시점", "useState 초기값"],
-  "example_sentence": "users를 처음 렌더링할 때 값이 무엇인지 console.log로 찍어서 확인해 볼래요.",
   "hints": ["힌트 1단계", "힌트 2단계"],
   "reference_answer": "기준 답변 전문"
 }
@@ -33,9 +31,7 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 
 | 필드 | 타입 | 규칙 |
 | --- | --- | --- |
-| `question_type` | string | `CONCEPT`, `DEBUGGING`, `PROBLEM_SOLVING`, `DESIGN` 중 하나. 항상 출력합니다. B는 사용자가 `FREE`로 보냈을 때만 이 값을 `type`으로 쓰고, 유형을 골랐으면 무시합니다. |
 | `choices` | string[] | 정확히 3개. 짧은 구절 |
-| `example_sentence` | string | 1개 |
 | `hints` | string[] | 정확히 2개. 1단계보다 2단계가 더 구체적 |
 | `reference_answer` | string | 비어 있으면 안 됨 |
 
@@ -43,10 +39,8 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 
 | AI 출력 | DB (`chat`) | API 응답 (`GET /chats/{chatId}`) |
 | --- | --- | --- |
-| `question_type` | `type` | `type` |
 | `choices` | `choices` | `choices` |
-| `example_sentence` | `example_sentence` | `exampleSentence` |
-| `hints` | `hints` | 공개된 단계만 `POST /hints` 응답의 `hint` |
+| `hints` | `hints` | 공개된 단계까지만 `GET /chats/{chatId}`의 `hints[]`와 `POST /hints` 응답의 `hint` |
 | `reference_answer` | `reference_answer` | 잠금이 풀린 뒤에만 `referenceAnswer` |
 
 ## 2. 비교 분석 (COMPARE)
@@ -129,9 +123,8 @@ DB는 `analysis_job.basic_explanation` (TEXT) 하나, API는 `basicExplanation` 
 
 1. JSON으로 파싱합니다.
 2. 필수 필드, 타입, 개수(`choices` 3개, `hints` 2개)를 확인합니다. 비교 분석의 `judgment_hold`는 `status`가 불린인지 보고, `true`이면 `reason`과 `follow_up_question`이 비어 있지 않은지 확인합니다.
-3. enum 값(`question_type`)을 확인합니다.
-4. 비교 분석이면 `user_quote`가 사용자 생각에 그대로 있는지 확인합니다. `supplement`의 빈 문자열(`""`)은 인용이 없다는 뜻이라 검사하지 않습니다. 없는 인용은 항목을 버릴지, 전체를 실패로 볼지 정해야 합니다 (협의 P6).
-5. 하나라도 실패하면 한 번 다시 호출하고, 다시 실패하면 `AI_INVALID_JSON`으로 처리합니다.
+3. 비교 분석이면 `user_quote`가 사용자 생각에 그대로 있는지 확인합니다. `supplement`의 빈 문자열(`""`)은 인용이 없다는 뜻이라 검사하지 않습니다. 없는 인용은 항목을 버릴지, 전체를 실패로 볼지 정해야 합니다 (협의 P6).
+4. 하나라도 실패하면 한 번 다시 호출하고, 다시 실패하면 `AI_INVALID_JSON`으로 처리합니다.
 
 ## 협의할 것
 
