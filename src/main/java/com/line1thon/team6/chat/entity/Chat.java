@@ -22,9 +22,9 @@ import java.util.List;
 @Entity
 @Table(
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_chat_session_client_request",
+                name = "uk_chat_request",
                 columnNames = {"guest_session_id", "client_request_id"}),
-        indexes = @Index(name = "idx_chat_session_created", columnList = "guest_session_id, created_at"))
+        indexes = @Index(name = "idx_chat_guest_created", columnList = "guest_session_id, created_at"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Chat {
@@ -35,7 +35,7 @@ public class Chat {
 
     /** 소유자. 세션을 지우면 DB의 FK(ON DELETE CASCADE)가 채팅도 지운다 (JPA cascade는 쓰지 않음) */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "guest_session_id", nullable = false)
+    @JoinColumn(name = "guest_session_id", nullable = false, foreignKey = @ForeignKey(name = "fk_chat_guest"))
     @OnDelete(action = OnDeleteAction.CASCADE)
     private GuestSession guestSession;
 
@@ -85,6 +85,10 @@ public class Chat {
     /** 선택지 칩 3개. 선생성이 끝나면 채움 */
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> choices;
+
+    /** 예시 문장. 선생성이 끝나면 채움 */
+    @Column(length = 500)
+    private String exampleSentence;
 
     /** 힌트 2단계. 선생성이 끝나면 채움 */
     @JdbcTypeCode(SqlTypes.JSON)
