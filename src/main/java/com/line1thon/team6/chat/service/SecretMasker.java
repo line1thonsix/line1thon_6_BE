@@ -33,17 +33,29 @@ public class SecretMasker {
             Pattern.compile("\\beyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}")
     );
 
-    /** 키 이름 뒤의 값만 가리는 패턴 */
-    private static final String SECRET_KEY_NAME =
-            "[A-Za-z0-9_.-]*(?:password|passwd|pwd|secret|api[_-]?key|access[_-]?key|token)[A-Za-z0-9_.-]*";
+    /** 비밀값을 뜻하는 단어 (대소문자 무시) */
+    private static final String SECRET_WORD =
+            "(?i:password|passwd|pwd|secret(?:[_-]?key)?|private[_-]?key|api[_-]?key|access[_-]?key|token)";
 
-    /** password = "abc123", "apiKey": 'xyz' 처럼 따옴표로 감싼 값 */
+    /**
+     * 키 이름 뒤의 값만 가리는 패턴.
+     * 비밀 단어가 키 이름의 마지막 단어일 때만 맞춘다. (dbPassword, ACCESS_TOKEN, client.secret은 맞고
+     * tokenType, passwordLabel, maxTokens, tokenizer는 안 맞는다)
+     * 식별자 시작에서만 매칭을 시작해 긴 문자열에서 위치마다 다시 훑지 않게 한다.
+     */
+    private static final String SECRET_KEY_NAME =
+            "(?<![A-Za-z0-9_.-])"
+                    + "(?:[A-Za-z0-9_.-]*?(?:[_.-]|(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])))?"
+                    + SECRET_WORD
+                    + "(?![A-Za-z0-9_.-])";
+
+    /** password = "abc123", "apiKey": 'xyz' 처럼 따옴표로 감싼 값 (공백이 있는 값은 문구로 보고 두기) */
     private static final Pattern QUOTED_ASSIGNMENT = Pattern.compile(
-            "(?i)(\"?" + SECRET_KEY_NAME + "\"?\\s*[:=]\\s*)([\"'])([^\"'\\r\\n]+)\\2");
+            "(\"?" + SECRET_KEY_NAME + "\"?\\s*[:=]\\s*)([\"'])([^\"'\\s]+)\\2");
 
     /** .env 형식의 DB_PASSWORD=abc123 (줄 전체가 대입문인 경우만) */
     private static final Pattern ENV_ASSIGNMENT = Pattern.compile(
-            "(?im)^([ \\t]*(?:export[ \\t]+)?" + SECRET_KEY_NAME + "[ \\t]*=[ \\t]*)([^\\s\"'#]+)[ \\t]*$");
+            "(?m)^([ \\t]*(?:export[ \\t]+)?" + SECRET_KEY_NAME + "[ \\t]*=[ \\t]*)([^\\s\"'#]+)[ \\t]*$");
 
     public Result mask(String code) {
         if (code == null) {

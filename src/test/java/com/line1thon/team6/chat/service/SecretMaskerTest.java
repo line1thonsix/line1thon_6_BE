@@ -36,6 +36,41 @@ class SecretMaskerTest {
     }
 
     @Test
+    void 비밀_단어가_키_이름_끝에_올_때만_가린다() {
+        assertThat(masker.mask("String accessToken = \"abc123\";").code())
+                .isEqualTo("String accessToken = \"[REDACTED]\";");
+        assertThat(masker.mask("jwt.secret: 'zzz'").code()).isEqualTo("jwt.secret: '[REDACTED]'");
+        assertThat(masker.mask("String secretKey = \"zzz\";").code()).isEqualTo("String secretKey = \"[REDACTED]\";");
+        assertThat(masker.mask("\"x-api-key\": \"zzz\"").code()).isEqualTo("\"x-api-key\": \"[REDACTED]\"");
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "String tokenType = \"Bearer\";",
+            "String passwordLabel = \"비밀번호를 입력하세요\";",
+            "const tokenizer = 'whitespace';",
+            "int maxTokens = \"100\";",
+            "String password = \"비밀번호를 입력하세요\";",
+    })
+    void 비밀값이_아닌_코드는_가리지_않는다(String code) {
+        SecretMasker.Result result = masker.mask(code);
+
+        assertThat(result.code()).isEqualTo(code);
+        assertThat(result.masked()).isFalse();
+    }
+
+    @Test
+    void 같은_문자가_길게_이어져도_빠르게_끝난다() {
+        String code = "a".repeat(100_000);
+
+        long start = System.nanoTime();
+        masker.mask(code);
+        long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+
+        assertThat(elapsedMs).isLessThan(500);
+    }
+
+    @Test
     void env_형식의_대입문은_값을_가린다() {
         String code = "DB_HOST=localhost\nDB_PASSWORD=abc123\nexport API_KEY=xyz\n";
 
