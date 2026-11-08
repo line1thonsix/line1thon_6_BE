@@ -48,9 +48,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 .findFirst()
                 .map(FieldError::getDefaultMessage)
                 .orElse(GlobalErrorCode.INVALID_INPUT.getMessage());
+        log.warn("{} {} -> {} {} ({})", servletRequest(request).getMethod(), servletRequest(request).getRequestURI(),
+                GlobalErrorCode.INVALID_INPUT.getStatus().value(), GlobalErrorCode.INVALID_INPUT.getCode(),
+                e.getClass().getSimpleName());
         ErrorResponse body = new ErrorResponse(
                 GlobalErrorCode.INVALID_INPUT.getCode(), message, RequestIdFilter.current());
-        return ResponseEntity.status(status).headers(headers).body(body);
+        return ResponseEntity.status(GlobalErrorCode.INVALID_INPUT.getStatus()).headers(headers).body(body);
     }
 
     /**
