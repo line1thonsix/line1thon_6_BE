@@ -86,10 +86,6 @@ public class Chat {
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> choices;
 
-    /** 예시 문장. 선생성이 끝나면 채움 */
-    @Column(length = 500)
-    private String exampleSentence;
-
     /** 힌트 2단계. 선생성이 끝나면 채움 */
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> hints;

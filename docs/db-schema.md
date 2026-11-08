@@ -19,7 +19,7 @@ erDiagram
 | 테이블 | 담당 | 내용 |
 | --- | --- | --- |
 | `guest_session` | A | 게스트 토큰 |
-| `chat` | A | 질문, 잠금 상태, 선생성 결과(칩·힌트·예시 문장·기준 답변) |
+| `chat` | A | 질문, 잠금 상태, 선생성 결과(칩·힌트·기준 답변) |
 | `thought` | A | 생각 최초 작성본 (채팅당 1개, 수정 불가) |
 | `analysis_job` | B | 비교 분석 / 기초 설명 작업과 결과 (채팅당 1개) |
 | `ai_usage_log` | B | AI 호출 기록 (FK 없음) |
@@ -52,7 +52,6 @@ erDiagram
 | prepare_started_at | DATETIME(6) | NOT NULL | 선생성 시작(재시도 포함) 시각. 1분 넘게 PREPARING이면 FAILED 처리할 때 사용 |
 | hint_level | TINYINT | NOT NULL, DEFAULT 0 | 0~2 |
 | choices | JSON | NULL | 칩 3개 `["...", "...", "..."]` |
-| example_sentence | VARCHAR(500) | NULL | 예시 문장. 선생성 결과로 저장 |
 | hints | JSON | NULL | 힌트 2단계 `["힌트1", "힌트2"]`. 힌트 기록 테이블은 만들지 않음 |
 | reference_answer | TEXT | NULL | 기준 답변. `status`가 `UNLOCKED_*`일 때만 응답에 포함 |
 | created_at | DATETIME(6) | NOT NULL |  |
@@ -147,7 +146,6 @@ CREATE TABLE chat (
   prepare_started_at     DATETIME(6)  NOT NULL,
   hint_level             TINYINT      NOT NULL DEFAULT 0,
   choices                JSON         NULL,
-  example_sentence       VARCHAR(500) NULL,
   hints                  JSON         NULL,
   reference_answer       TEXT         NULL,
   created_at             DATETIME(6)  NOT NULL,
@@ -206,7 +204,7 @@ CREATE TABLE ai_usage_log (
 
 ## 설계 메모
 
-- **A - 선생성 결과를 `chat`에 둔 이유**: 칩·힌트·예시 문장·기준 답변은 채팅당 한 세트이고 같이 생겨서, 테이블을 나누면 조인만 늘어요. 힌트는 회의에서 기록 테이블을 만들지 않기로 해서 JSON 배열로 저장해요.
+- **A - 선생성 결과를 `chat`에 둔 이유**: 칩·힌트·기준 답변은 채팅당 한 세트이고 같이 생겨서, 테이블을 나누면 조인만 늘어요. 힌트는 회의에서 기록 테이블을 만들지 않기로 해서 JSON 배열로 저장해요.
 - **B - 삭제 방식 (DB cascade로 확정)**: 채팅에 딸린 행(`thought`, `analysis_job`)은 JPA가 아니라 DB의 `ON DELETE CASCADE`가 지워요. 코드에서는 `chat` 행 하나만 지우고, `Chat` 엔티티에 `@OneToMany(cascade = REMOVE)`나 `orphanRemoval`을 달지 않아요. 자식 엔티티(`Thought.chat`, `AnalysisJob.chat`)에는 `@OnDelete(action = OnDeleteAction.CASCADE)`를 붙여서 `ddl-auto`로 만들 때도 FK에 cascade가 들어가게 해요.
 - **A - 동시성**: 생각 제출과 기초 학습 전환이 동시에 와도 `analysis_job.chat_id` UNIQUE 때문에 하나만 성공해요. 잠금 상태 머신 문서의 `SELECT ... FOR UPDATE`와 같이 쓰면 친절한 409 응답까지 줄 수 있어요.
 
