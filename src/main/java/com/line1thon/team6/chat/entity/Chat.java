@@ -1,5 +1,6 @@
 package com.line1thon.team6.chat.entity;
 
+import com.line1thon.team6.analysis.entity.AnalysisMode;
 import com.line1thon.team6.global.common.KoreaTime;
 import com.line1thon.team6.session.entity.GuestSession;
 import jakarta.persistence.*;
@@ -136,6 +137,18 @@ public class Chat {
         if (referenceAnswer == null || referenceAnswer.isBlank()) {
             throw new IllegalArgumentException("기준 답변이 비어 있습니다");
         }
+    }
+
+    /**
+     * 잠금 해제 (전이 T6). LockService.completeJob에서만 부른다.
+     * 고른 길이 COMPARE면 직접 해결(UNLOCKED_SELF), BASIC이면 도움받아 학습(UNLOCKED_ASSISTED).
+     * UNLOCKED_*는 끝 상태라 다시 바꾸지 않는다.
+     */
+    public void unlock(AnalysisMode mode) {
+        if (status != ChatStatus.LOCKED) {
+            throw new IllegalStateException("이미 잠금이 풀린 채팅입니다: chatId=" + id + " status=" + status);
+        }
+        this.status = mode == AnalysisMode.COMPARE ? ChatStatus.UNLOCKED_SELF : ChatStatus.UNLOCKED_ASSISTED;
     }
 
     @PreUpdate
