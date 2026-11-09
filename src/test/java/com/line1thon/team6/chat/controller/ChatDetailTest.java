@@ -1,9 +1,11 @@
 package com.line1thon.team6.chat.controller;
 
 import com.line1thon.team6.chat.entity.Chat;
+import com.line1thon.team6.chat.entity.PrepareStatus;
 import com.line1thon.team6.chat.entity.QuestionType;
 import com.line1thon.team6.chat.repository.ChatRepository;
 import com.line1thon.team6.chat.service.ChatService;
+import com.line1thon.team6.global.common.KoreaTime;
 import com.line1thon.team6.session.entity.GuestSession;
 import com.line1thon.team6.session.repository.GuestSessionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +20,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -153,6 +156,62 @@ class ChatDetailTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.prepareStatus").value("FAILED"))
                 .andExpect(jsonPath("$.choices").isEmpty());
+    }
+
+    // ===== 1분 시간 초과 (멈춘 선생성 복구) =====
+
+    /** 선생성 시작 시각을 과거로 돌린다 */
+    private void startedSecondsAgo(Long chatId, long seconds) {
+        jdbcTemplate.update("update chat set prepare_started_at = ? where id = ?",
+                KoreaTime.now().minusSeconds(seconds), chatId);
+    }
+
+    @Test
+    void 선생성_시작_후_1분이_안_됐으면_PREPARING_그대로() throws Exception {
+        Long chatId = newChat(session);
+        startedSecondsAgo(chatId, 50);
+
+        getDetail(chatId).andExpect(jsonPath("$.prepareStatus").value("PREPARING"));
+
+        assertThat(chatRepository.findById(chatId).orElseThrow().getPrepareStatus())
+                .isEqualTo(PrepareStatus.PREPARING);
+    }
+
+    @Test
+    void 선생성_시작_후_1분이_넘었으면_FAILED로_바꿔서_돌려준다() throws Exception {
+        Long chatId = newChat(session);
+        startedSecondsAgo(chatId, 61);
+
+        getDetail(chatId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.prepareStatus").value("FAILED"))
+                .andExpect(jsonPath("$.choices").isEmpty());
+
+        assertThat(chatRepository.findById(chatId).orElseThrow().getPrepareStatus())
+                .isEqualTo(PrepareStatus.FAILED);
+    }
+
+    @Test
+    void 시간_초과로_FAILED가_된_뒤_늦게_온_선생성_결과는_버린다() throws Exception {
+        Long chatId = newChat(session);
+        startedSecondsAgo(chatId, 61);
+        getDetail(chatId).andExpect(jsonPath("$.prepareStatus").value("FAILED"));
+
+        chatService.completePrepare(chatId, CHOICES, HINTS, REFERENCE_ANSWER);
+
+        Chat chat = chatRepository.findById(chatId).orElseThrow();
+        assertThat(chat.getPrepareStatus()).isEqualTo(PrepareStatus.FAILED);
+        assertThat(chat.getChoices()).isNull();
+    }
+
+    @Test
+    void 이미_DONE이면_1분이_지나도_바꾸지_않는다() throws Exception {
+        Long chatId = doneChat();
+        startedSecondsAgo(chatId, 600);
+
+        getDetail(chatId)
+                .andExpect(jsonPath("$.prepareStatus").value("DONE"))
+                .andExpect(jsonPath("$.choices", hasSize(3)));
     }
 
     @Test

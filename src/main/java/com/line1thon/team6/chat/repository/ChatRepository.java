@@ -70,4 +70,22 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
                and c.prepareStatus = com.line1thon.team6.chat.entity.PrepareStatus.PREPARING
             """)
     int failPrepareIfPreparing(@Param("id") Long id, @Param("now") LocalDateTime now);
+
+    /**
+     * 선생성 시작(재시도 포함) 후 deadline 전부터 PREPARING이면 FAILED로 바꾼다 (조회 시 멈춘 작업 복구).
+     * 서버 재시작 등으로 선생성 작업이 사라지면 PREPARING에 멈추므로, 재시도할 수 있게 실패로 돌린다.
+     * B의 completePrepareIfPreparing과 겹쳐도 먼저 바꾼 쪽만 반영된다.
+     * @return 바뀐 행 수. 0이면 이미 끝났거나 아직 시간이 남음
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update Chat c
+               set c.prepareStatus = com.line1thon.team6.chat.entity.PrepareStatus.FAILED,
+                   c.updatedAt = :now
+             where c.id = :id
+               and c.prepareStatus = com.line1thon.team6.chat.entity.PrepareStatus.PREPARING
+               and c.prepareStartedAt < :deadline
+            """)
+    int failPrepareIfTimedOut(@Param("id") Long id, @Param("deadline") LocalDateTime deadline,
+                              @Param("now") LocalDateTime now);
 }
