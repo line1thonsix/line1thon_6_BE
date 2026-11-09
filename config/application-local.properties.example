@@ -1,3 +1,6 @@
 # 이 파일을 복사해서 같은 폴더에 application-local.properties로 저장하고 본인 MySQL 계정을 입력하세요.
 spring.datasource.username=root
 spring.datasource.password=본인_비밀번호
+
+# Gemini API 키 (없으면 가짜 AI 응답으로 실행). 환경변수 GEMINI_API_KEY로 넣어도 된다
+# deveil.ai.api-key=본인_키
