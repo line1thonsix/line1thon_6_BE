@@ -2,7 +2,9 @@ package com.line1thon.team6.chat.repository;
 
 import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.session.entity.GuestSession;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,6 +20,19 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
 
     /** 내 대화만 찾는다 (소유권 확인). 남의 대화도 없는 대화처럼 빈 값 */
     Optional<Chat> findByIdAndGuestSession(Long id, GuestSession guestSession);
+
+    /**
+     * 내 대화를 행 잠금(SELECT ... FOR UPDATE)으로 읽는다. 트랜잭션이 끝날 때까지 같은 채팅의 다른 잠금 요청은 기다린다.
+     * 작업이 있는지 확인하고 만드는 사이에 다른 요청이 끼어들지 못하게 할 때 쓴다 (잠금 상태 머신 구현 규칙).
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from Chat c where c.id = :id and c.guestSession = :guestSession")
+    Optional<Chat> findOwnedForUpdate(@Param("id") Long id, @Param("guestSession") GuestSession guestSession);
+
+    /** 행 잠금으로 읽는다. 세션 없이 서버 내부(B의 분석 완료 처리)에서 쓴다 */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from Chat c where c.id = :id")
+    Optional<Chat> findByIdForUpdate(@Param("id") Long id);
 
     /**
      * FAILED일 때만 PREPARING으로 바꾼다 (선생성 재시도). 확인과 변경이 쿼리 하나라 중복 클릭에도 한 번만 바뀐다.

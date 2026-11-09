@@ -1,5 +1,6 @@
 package com.line1thon.team6.chat.service;
 
+import com.line1thon.team6.analysis.service.AnalysisJobService;
 import com.line1thon.team6.chat.dto.ChatCreateRequest;
 import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.chat.entity.QuestionType;
@@ -28,7 +29,7 @@ class ChatServiceTest {
     private final ChatRepository chatRepository = mock(ChatRepository.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final ChatService chatService = new ChatService(chatRepository, new SecretMasker(), eventPublisher,
-            new TransactionTemplate(mock(PlatformTransactionManager.class)));
+            new TransactionTemplate(mock(PlatformTransactionManager.class)), mock(AnalysisJobService.class));
 
     private final GuestSession session = new GuestSession(UUID.randomUUID().toString());
     private final UUID clientRequestId = UUID.randomUUID();

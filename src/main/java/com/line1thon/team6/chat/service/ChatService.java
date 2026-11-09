@@ -3,12 +3,14 @@ package com.line1thon.team6.chat.service;
 import com.line1thon.team6.chat.dto.ChatCreateRequest;
 import com.line1thon.team6.chat.dto.ChatCreateResponse;
 import com.line1thon.team6.chat.dto.ChatDetailResponse;
+import com.line1thon.team6.chat.dto.OpenedHint;
 import com.line1thon.team6.chat.dto.PrepareRetryResponse;
 import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.chat.entity.PrepareStatus;
 import com.line1thon.team6.chat.event.PrepareRequested;
 import com.line1thon.team6.chat.exception.ChatErrorCode;
 import com.line1thon.team6.chat.repository.ChatRepository;
+import com.line1thon.team6.analysis.service.AnalysisJobService;
 import com.line1thon.team6.global.common.KoreaTime;
 import com.line1thon.team6.global.exception.BusinessException;
 import com.line1thon.team6.global.exception.GlobalErrorCode;
@@ -37,6 +39,7 @@ public class ChatService {
     private final SecretMasker secretMasker;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
+    private final AnalysisJobService analysisJobService;
 
     /**
      * 질문 생성. 같은 전송 ID로 이미 만든 대화가 있으면 새로 만들지 않고 그 대화를 돌려준다.
@@ -127,6 +130,36 @@ public class ChatService {
         if (chatRepository.failPrepareIfPreparing(chatId, KoreaTime.now()) == 0) {
             log.warn("선생성 실패를 무시함: PREPARING이 아님 chatId={} prepareStatus={}", chatId, prepareStatusOf(chatId));
         }
+    }
+
+    /**
+     * 힌트 한 단계 공개 (전이 T3). B의 POST /api/chats/{chatId}/hints가 호출한다.
+     * 채팅 행을 잠근(SELECT ... FOR UPDATE) 상태에서 확인과 증가를 한 트랜잭션으로 한다.
+     * 확인과 증가를 따로 하면 그 사이에 생각 제출로 작업이 생겨도 힌트가 열릴 수 있기 때문이다.
+     * <ul>
+     *   <li>없거나 남의 대화: 404 CHAT_NOT_FOUND</li>
+     *   <li>선생성이 DONE이 아님: 409 PREPARE_NOT_DONE</li>
+     *   <li>분석 작업이 있음 (생각 제출·기초 학습을 이미 함): 409 ALREADY_SUBMITTED</li>
+     *   <li>이미 2단계: 바꾸지 않고 마지막 힌트를 다시 돌려줌 (200)</li>
+     * </ul>
+     * 잠금 상태(status)는 바꾸지 않는다.
+     */
+    @Transactional
+    public OpenedHint openNextHint(GuestSession session, Long chatId) {
+        Chat chat = chatRepository.findOwnedForUpdate(chatId, session)
+                .orElseThrow(() -> new BusinessException(GlobalErrorCode.CHAT_NOT_FOUND));
+        if (chat.getPrepareStatus() != PrepareStatus.DONE) {
+            throw new BusinessException(ChatErrorCode.PREPARE_NOT_DONE);
+        }
+        if (analysisJobService.findByChatId(chat.getId()).isPresent()) {
+            throw new BusinessException(ChatErrorCode.ALREADY_SUBMITTED);
+        }
+        if (chat.getHintLevel() < Chat.MAX_HINT_LEVEL) {
+            chat.openNextHint();
+        }
+        int hintLevel = chat.getHintLevel();
+        return new OpenedHint(hintLevel, chat.currentHint(),
+                hintLevel < Chat.MAX_HINT_LEVEL, hintLevel == Chat.MAX_HINT_LEVEL);
     }
 
     /** 로그용 현재 선생성 상태. 없는 채팅이면 "없음" */
