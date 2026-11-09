@@ -2,6 +2,7 @@ package com.line1thon.team6.chat.service;
 
 import com.line1thon.team6.chat.dto.ChatCreateRequest;
 import com.line1thon.team6.chat.dto.ChatCreateResponse;
+import com.line1thon.team6.chat.dto.ChatDetailResponse;
 import com.line1thon.team6.chat.dto.PrepareRetryResponse;
 import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.chat.entity.PrepareStatus;
@@ -20,12 +21,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatService {
+
+    /** 이 시간이 넘도록 PREPARING이면 조회할 때 FAILED로 바꾼다 (API 명세서: 1분) */
+    static final Duration PREPARE_TIMEOUT = Duration.ofMinutes(1);
 
     private final ChatRepository chatRepository;
     private final SecretMasker secretMasker;
@@ -65,6 +71,24 @@ public class ChatService {
     public Chat getOwnedChat(GuestSession session, Long chatId) {
         return chatRepository.findByIdAndGuestSession(chatId, session)
                 .orElseThrow(() -> new BusinessException(GlobalErrorCode.CHAT_NOT_FOUND));
+    }
+
+    /**
+     * 채팅 상세 조회 (새로고침 복구, 선생성 폴링). 없거나 남의 대화면 404 CHAT_NOT_FOUND.
+     * 선생성 시작(재시도 포함) 후 1분이 넘도록 PREPARING이면 FAILED로 바꿔서 돌려준다 (멈춘 작업 복구).
+     * B의 선생성은 최대 45초(15초 × 3번)라서 정상 작업은 1분 안에 끝난다.
+     */
+    @Transactional
+    public ChatDetailResponse getDetail(GuestSession session, Long chatId) {
+        Chat chat = getOwnedChat(session, chatId);
+        LocalDateTime now = KoreaTime.now();
+        if (chat.getPrepareStatus() == PrepareStatus.PREPARING
+                && chatRepository.failPrepareIfTimedOut(chat.getId(), now.minus(PREPARE_TIMEOUT), now) > 0) {
+            log.warn("선생성 시간 초과로 FAILED 처리: chatId={} prepareStartedAt={}", chatId, chat.getPrepareStartedAt());
+            // 조건부 UPDATE가 영속성 컨텍스트를 비웠으니 바뀐 값을 다시 읽는다
+            chat = getOwnedChat(session, chatId);
+        }
+        return ChatDetailResponse.from(chat);
     }
 
     /**
