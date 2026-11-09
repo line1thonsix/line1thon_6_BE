@@ -30,6 +30,9 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Chat {
 
+    /** 힌트는 2단계까지. 2단계를 보면 기초 학습을 고를 수 있다 */
+    public static final int MAX_HINT_LEVEL = 2;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -137,6 +140,22 @@ public class Chat {
         if (referenceAnswer == null || referenceAnswer.isBlank()) {
             throw new IllegalArgumentException("기준 답변이 비어 있습니다");
         }
+    }
+
+    /**
+     * 힌트 한 단계 공개 (전이 T3). ChatService.openNextHint에서만 부른다.
+     * 2단계를 넘지 않게 여기서 막는다. 잠금 상태(status)는 바꾸지 않는다.
+     */
+    public void openNextHint() {
+        if (hintLevel >= MAX_HINT_LEVEL) {
+            throw new IllegalStateException("힌트는 " + MAX_HINT_LEVEL + "단계까지입니다: chatId=" + id);
+        }
+        this.hintLevel++;
+    }
+
+    /** 지금 공개된 마지막 힌트. 아직 안 열었으면 null */
+    public String currentHint() {
+        return hintLevel == 0 || hints == null ? null : hints.get(hintLevel - 1);
     }
 
     /**
