@@ -2,6 +2,7 @@ package com.line1thon.team6.chat.service;
 
 import com.line1thon.team6.chat.dto.ChatCreateRequest;
 import com.line1thon.team6.chat.dto.ChatCreateResponse;
+import com.line1thon.team6.chat.dto.ChatDetailResponse;
 import com.line1thon.team6.chat.dto.PrepareRetryResponse;
 import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.chat.entity.PrepareStatus;
@@ -65,6 +66,12 @@ public class ChatService {
     public Chat getOwnedChat(GuestSession session, Long chatId) {
         return chatRepository.findByIdAndGuestSession(chatId, session)
                 .orElseThrow(() -> new BusinessException(GlobalErrorCode.CHAT_NOT_FOUND));
+    }
+
+    /** 채팅 상세 조회 (새로고침 복구, 선생성 폴링). 없거나 남의 대화면 404 CHAT_NOT_FOUND */
+    @Transactional(readOnly = true)
+    public ChatDetailResponse getDetail(GuestSession session, Long chatId) {
+        return ChatDetailResponse.from(getOwnedChat(session, chatId));
     }
 
     /**
