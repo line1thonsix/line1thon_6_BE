@@ -8,6 +8,7 @@ import com.line1thon.team6.chat.service.ChatService;
 import com.line1thon.team6.global.common.KoreaTime;
 import com.line1thon.team6.session.entity.GuestSession;
 import com.line1thon.team6.session.repository.GuestSessionRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.UUID;
@@ -50,6 +52,12 @@ class ChatDetailTest {
 
     @Autowired
     JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    EntityManager entityManager;
+
+    @Autowired
+    TransactionTemplate transactionTemplate;
 
     GuestSession session;
     String token;
@@ -160,10 +168,17 @@ class ChatDetailTest {
 
     // ===== 1분 시간 초과 (멈춘 선생성 복구) =====
 
-    /** 선생성 시작 시각을 과거로 돌린다 */
+    /**
+     * 선생성 시작 시각을 과거로 돌린다.
+     * 시각은 앱과 똑같이 Hibernate로 넣는다. JdbcTemplate로 넣으면 hibernate.jdbc.time_zone 변환을 거치지 않아서
+     * 서버 시간대가 한국이 아닐 때(CI는 UTC) 9시간 어긋난다.
+     */
     private void startedSecondsAgo(Long chatId, long seconds) {
-        jdbcTemplate.update("update chat set prepare_started_at = ? where id = ?",
-                KoreaTime.now().minusSeconds(seconds), chatId);
+        transactionTemplate.executeWithoutResult(status -> entityManager
+                .createQuery("update Chat c set c.prepareStartedAt = :startedAt where c.id = :id")
+                .setParameter("startedAt", KoreaTime.now().minusSeconds(seconds))
+                .setParameter("id", chatId)
+                .executeUpdate());
     }
 
     @Test
