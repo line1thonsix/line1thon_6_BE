@@ -145,6 +145,17 @@ public class AnalysisJob {
         this.errorCode = null;
     }
 
+    /**
+     * 기초 설명 저장 (B). 같은 트랜잭션에서 이어서 LockService.completeJob을 불러 DONE과 잠금 해제(UNLOCKED_ASSISTED)를 한다.
+     *
+     * @param explanationJson {summary, exampleCode, observe, change} JSON 문자열
+     */
+    public void recordBasicExplanation(String explanationJson) {
+        requirePending("결과 저장");
+        this.basicExplanation = explanationJson;
+        this.errorCode = null;
+    }
+
     /** AI 호출 실패 (B). 잠금은 그대로(LOCKED) 두고, 사용자는 재시도할 수 있다 */
     public void fail(String errorCode) {
         requirePending("실패 처리");
