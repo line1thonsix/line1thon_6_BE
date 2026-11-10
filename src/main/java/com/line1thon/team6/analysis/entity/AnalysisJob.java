@@ -99,6 +99,29 @@ public class AnalysisJob {
         this.completedAt = KoreaTime.now();
     }
 
+    /**
+     * 비교 분석 결과 저장 (B). 같은 트랜잭션에서 이어서 LockService.completeJob을 불러 DONE과 잠금 해제를 한다.
+     * 재시도에 성공하면 이전 실패의 오류 코드를 지운다.
+     */
+    public void recordFindings(List<Map<String, Object>> findings) {
+        requirePending("결과 저장");
+        this.findings = findings;
+        this.errorCode = null;
+    }
+
+    /** AI 호출 실패 (B). 잠금은 그대로(LOCKED) 두고, 사용자는 재시도할 수 있다 */
+    public void fail(String errorCode) {
+        requirePending("실패 처리");
+        this.status = AnalysisStatus.FAILED;
+        this.errorCode = errorCode;
+    }
+
+    private void requirePending(String action) {
+        if (status != AnalysisStatus.PENDING) {
+            throw new IllegalStateException("PENDING인 작업만 " + action + "할 수 있습니다: jobId=" + id + " status=" + status);
+        }
+    }
+
     public int retryCount() {
         return attemptCount - 1;
     }
