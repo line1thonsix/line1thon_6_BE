@@ -246,6 +246,25 @@ class CompareFlowTest {
     }
 
     @Test
+    void 실패한_뒤_재시도하면_백그라운드에서_다시_분석해_DONE이_된다() throws Exception {
+        given(llmClient.generate(any()))
+                .willThrow(new AiException(AiErrorCode.AI_API_ERROR, "429"))
+                .willReturn(new LlmResponse(VALID_OUTPUT, 1, 1, "STOP"));
+        Submitted submitted = submit(doneChat());
+        assertThat(awaitJob(submitted.jobId()).getStatus()).isEqualTo(AnalysisStatus.FAILED);
+
+        mockMvc.perform(post("/api/chats/{chatId}/analysis/retry", submitted.chatId()).header("X-Guest-Token", token))
+                .andExpect(status().isAccepted());
+
+        AnalysisJob job = awaitJob(submitted.jobId());
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(job.getAttemptCount()).isEqualTo(2);
+        assertThat(job.getErrorCode()).isNull();
+        assertThat(chatStatusOf(submitted.chatId())).isEqualTo(ChatStatus.UNLOCKED_SELF);
+        verify(llmClient, times(2)).generate(any());
+    }
+
+    @Test
     void 예상하지_못한_오류여도_PENDING에_멈추지_않고_AI_API_ERROR로_FAILED() throws Exception {
         given(llmClient.generate(any())).willThrow(new IllegalStateException("bug"));
         Submitted submitted = submit(doneChat());
