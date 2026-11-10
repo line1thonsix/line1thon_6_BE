@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,6 +50,24 @@ public class AnalysisResultWriter {
         Optional<AnalysisJob> job = pendingJob(chatId, jobId, "실패");
         job.ifPresent(j -> j.fail(errorCode.name()));
         return job.isPresent();
+    }
+
+    /**
+     * 오래 PENDING인 작업을 AI_TIMEOUT으로 실패 처리한다 (서버 재시작 등으로 백그라운드 작업이 사라진 경우).
+     * 분석 조회 때 부른다. 행을 잠근 뒤 다시 확인하므로, 그 사이 결과가 저장됐으면 바꾸지 않는다.
+     *
+     * @return 실패로 바꿨으면 true
+     */
+    @Transactional
+    public boolean failIfStale(Long chatId, Long jobId, LocalDateTime threshold) {
+        Optional<AnalysisJob> job = pendingJob(chatId, jobId, "시간 초과 처리");
+        if (job.isEmpty() || !job.get().isStale(threshold)) {
+            return false;
+        }
+        job.get().fail(AiErrorCode.AI_TIMEOUT.name());
+        log.warn("오래 멈춘 분석 작업을 실패로 바꿈: chatId={} jobId={} attemptCount={}",
+                chatId, jobId, job.get().getAttemptCount());
+        return true;
     }
 
     /** 채팅 행을 잠근 뒤 PENDING인 작업을 읽는다. 채팅이 없거나 PENDING이 아니면 empty */
