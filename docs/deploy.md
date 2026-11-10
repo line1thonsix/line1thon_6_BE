@@ -6,6 +6,7 @@
   - `line1thon_6_BE`: GitHub 레포 `line1thonsix/line1thon_6_BE` 연결 (Spring Boot, Java 21)
   - `MySQL`: Railway MySQL 템플릿
 - 주소: https://line1thon6be-production.up.railway.app
+- API 문서(Swagger): https://line1thon6be-production.up.railway.app/swagger-ui/index.html (`POST /api/sessions`로 받은 토큰을 Authorize에 넣고 호출). 끄려면 `application-prod.properties`에 `springdoc.api-docs.enabled=false`, `springdoc.swagger-ui.enabled=false`
 - 기본 배포: `main` 브랜치에 push하면 GitHub 자동 배포
 - 수동 배포: `railway link` 후 `railway up -d`
 - 로그 확인: `railway logs`
