@@ -18,8 +18,8 @@ public class AiClientConfig {
     @Bean
     public LlmClient llmClient(AiProperties properties, JsonMapper jsonMapper) {
         if (!properties.hasApiKey()) {
-            log.warn("GEMINI_API_KEY가 없어 가짜 AI 클라이언트로 실행합니다. 선생성 결과는 고정 문구입니다.");
-            return new FakeLlmClient();
+            log.warn("GEMINI_API_KEY가 없어 가짜 AI 클라이언트로 실행합니다. 선생성·비교 분석 결과는 고정 문구입니다.");
+            return new FakeLlmClient(jsonMapper);
         }
         log.info("Gemini 클라이언트 사용: model={}, timeout={}", properties.model(), properties.timeout());
         return new GeminiClient(properties, jsonMapper);
