@@ -25,7 +25,7 @@ class CompareOutputParserTest {
               "supplement": [{"title": "옵셔널 체이닝", "user_quote": "", "ai_view": "users?.map", "reason": "놓친 방어 코드"}],
               "unique": [{"title": "실행 순서", "user_quote": "useEffect가 늦게 실행돼요.", "reason": "타당한 관점"}],
               "error": [{"title": "원인 오해", "user_quote": "데이터가 오기 전에는 undefined라서요.", "conflict": "초기값이 undefined", "how_to_check": "console.log"}],
-              "judgment_hold": [{"title": "의도 불명", "user_quote": "", "reason": "근거 부족", "follow_up_question": "어떤 값을 기대했나요?"}]
+              "judgment_hold": [{"title": "의도 불명", "user_quote": "useEffect가 늦게 실행돼요.", "reason": "근거 부족", "follow_up_question": "어떤 값을 기대했나요?"}]
             }
             """;
 
@@ -42,7 +42,7 @@ class CompareOutputParserTest {
         assertThat(findings.get(3)).isEqualTo(new CompareFinding("CONFLICT", "원인 오해",
                 "데이터가 오기 전에는 undefined라서요.", "초기값이 undefined", "console.log", null));
         assertThat(findings.get(4)).isEqualTo(new CompareFinding("UNDETERMINED", "의도 불명",
-                null, null, "근거 부족", "어떤 값을 기대했나요?"));
+                "useEffect가 늦게 실행돼요.", null, "근거 부족", "어떤 값을 기대했나요?"));
     }
 
     @Test
@@ -81,6 +81,16 @@ class CompareOutputParserTest {
                 """))
                 .isInstanceOfSatisfying(AiOutputInvalidException.class,
                         e -> assertThat(e.getProblems()).singleElement().asString().contains("common[0]"));
+    }
+
+    @Test
+    void 판단_보류는_인용이_필수라_빈_인용이면_형식_오류() {
+        assertThatThrownBy(() -> parse("""
+                {"common": [], "supplement": [], "unique": [], "error": [],
+                 "judgment_hold": [{"title": "t", "user_quote": "", "reason": "r", "follow_up_question": "q"}]}
+                """))
+                .isInstanceOfSatisfying(AiOutputInvalidException.class, e -> assertThat(e.getProblems())
+                        .containsExactly("judgment_hold[0].user_quote가 비어 있습니다"));
     }
 
     @Test

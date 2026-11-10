@@ -1,5 +1,6 @@
 package com.line1thon.team6.analysis.dto;
 
+import com.line1thon.team6.ai.analysis.BasicExplanation;
 import com.line1thon.team6.analysis.entity.AnalysisJob;
 import com.line1thon.team6.analysis.entity.AnalysisMode;
 import com.line1thon.team6.analysis.entity.AnalysisStatus;
@@ -16,6 +17,7 @@ import java.util.stream.IntStream;
  * 항상 같은 모양으로 응답하고, 지금 상태에서 보여 줄 수 없는 값은 null이다.
  * <ul>
  *   <li>잠금 가드: 기준 답변(referenceAnswer), findings, basicExplanation은 잠금이 풀린 뒤(DONE)에만 넣는다</li>
+ *   <li>basicExplanation은 기초 학습(BASIC)일 때 {summary, exampleCode, observe, change} 객체 (Figma 10번 네 칸)</li>
  *   <li>errorCode는 FAILED일 때만</li>
  *   <li>retryCount, remainingRetries는 재시도 버튼 표시용 (채팅 상세의 analysis와 같은 값)</li>
  * </ul>
@@ -28,7 +30,7 @@ public record AnalysisResponse(
         String myThought,
         String referenceAnswer,
         List<Finding> findings,
-        String basicExplanation,
+        BasicExplanation basicExplanation,
         String notice,
         boolean isDemo,
         String errorCode,
@@ -57,8 +59,11 @@ public record AnalysisResponse(
         }
     }
 
-    /** @param thought 제출한 생각. 기초 학습이면 null */
-    public static AnalysisResponse of(Chat chat, AnalysisJob job, Thought thought) {
+    /**
+     * @param thought          제출한 생각. 기초 학습이면 null
+     * @param basicExplanation 저장된 기초 설명 (BASIC이 끝났을 때만, 아니면 null)
+     */
+    public static AnalysisResponse of(Chat chat, AnalysisJob job, Thought thought, BasicExplanation basicExplanation) {
         boolean revealed = job.getStatus() == AnalysisStatus.DONE && chat.getStatus() != ChatStatus.LOCKED;
         return new AnalysisResponse(
                 job.getId(),
@@ -68,7 +73,7 @@ public record AnalysisResponse(
                 thought == null ? null : thought.getContent(),
                 revealed ? chat.getReferenceAnswer() : null,
                 revealed ? findings(job.getFindings()) : null,
-                revealed ? job.getBasicExplanation() : null,
+                revealed ? basicExplanation : null,
                 NOTICE,
                 job.isDemo(),
                 job.getStatus() == AnalysisStatus.FAILED ? job.getErrorCode() : null,

@@ -24,7 +24,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * API 키가 없으면 가짜 클라이언트로 비교 분석이 끝까지 진행된다 (로컬에서 키 없이 프론트 연동할 때).
+ * API 키가 없으면 가짜 클라이언트로 비교 분석·기초 설명이 끝까지 진행된다 (로컬에서 키 없이 프론트 연동할 때).
  * 테스트 설정은 리스너가 꺼져 있어서 AnalysisService를 직접 부른다.
  */
 @SpringBootTest
@@ -77,6 +77,22 @@ class FakeClientCompareTest {
         assertThat(job.getFindings().getFirst().get("userQuote")).asString().isNotBlank();
         assertThat(THOUGHT).contains((String) job.getFindings().getFirst().get("userQuote"));
         assertThat(chatRepository.findById(chatId).orElseThrow().getStatus()).isEqualTo(ChatStatus.UNLOCKED_SELF);
+    }
+
+    @Test
+    void 키가_없으면_기초_설명도_가짜_결과로_DONE이_되고_ASSISTED로_풀린다() {
+        GuestSession session = guestSessionRepository.save(new GuestSession(UUID.randomUUID().toString()));
+        Long chatId = chatRepository.save(Chat.create(session, UUID.randomUUID().toString(), QuestionType.CONCEPT,
+                null, "질문", null, false)).getId();
+        chatService.completePrepare(chatId, List.of("칩1", "칩2", "칩3"), List.of("힌트1", "힌트2"), "기준 답변");
+        AnalysisJob basic = lockService.startJob(session, chatId, AnalysisMode.BASIC).job();
+
+        analysisService.analyze(chatId, basic.getId());
+
+        AnalysisJob job = analysisJobRepository.findById(basic.getId()).orElseThrow();
+        assertThat(job.getStatus()).isEqualTo(AnalysisStatus.DONE);
+        assertThat(job.getBasicExplanation()).contains("summary").contains("exampleCode");
+        assertThat(chatRepository.findById(chatId).orElseThrow().getStatus()).isEqualTo(ChatStatus.UNLOCKED_ASSISTED);
     }
 
     @Test

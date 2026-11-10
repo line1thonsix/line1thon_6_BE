@@ -1,6 +1,7 @@
 package com.line1thon.team6.analysis.service;
 
 import com.line1thon.team6.ai.analysis.AnalysisResultWriter;
+import com.line1thon.team6.ai.analysis.BasicExplanation;
 import com.line1thon.team6.analysis.dto.AnalysisResponse;
 import com.line1thon.team6.analysis.dto.AnalysisRetryResponse;
 import com.line1thon.team6.analysis.entity.AnalysisJob;
@@ -15,6 +16,7 @@ import com.line1thon.team6.session.entity.GuestSession;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -34,16 +36,19 @@ public class AnalysisQueryService {
     private final ThoughtRepository thoughtRepository;
     private final AnalysisResultWriter resultWriter;
     private final LockService lockService;
+    private final JsonMapper jsonMapper;
     private final TransactionTemplate readOnlyTx;
 
     public AnalysisQueryService(ChatService chatService, AnalysisJobService analysisJobService,
                                 ThoughtRepository thoughtRepository, AnalysisResultWriter resultWriter,
-                                LockService lockService, PlatformTransactionManager transactionManager) {
+                                LockService lockService, JsonMapper jsonMapper,
+                                PlatformTransactionManager transactionManager) {
         this.chatService = chatService;
         this.analysisJobService = analysisJobService;
         this.thoughtRepository = thoughtRepository;
         this.resultWriter = resultWriter;
         this.lockService = lockService;
+        this.jsonMapper = jsonMapper;
         this.readOnlyTx = new TransactionTemplate(transactionManager);
         this.readOnlyTx.setReadOnly(true);
     }
@@ -72,9 +77,15 @@ public class AnalysisQueryService {
             Chat chat = chatService.getOwnedChat(session, chatId);
             AnalysisJob job = analysisJobService.findByChatId(chat.getId())
                     .orElseThrow(() -> new BusinessException(AnalysisErrorCode.ANALYSIS_NOT_FOUND));
-            return new View(AnalysisResponse.of(chat, job, thoughtRepository.findByChat(chat).orElse(null)),
-                    job.isStale(threshold));
+            return new View(AnalysisResponse.of(chat, job, thoughtRepository.findByChat(chat).orElse(null),
+                    basicExplanation(job)), job.isStale(threshold));
         });
+    }
+
+    /** 저장된 기초 설명 JSON을 읽는다. 기초 설명이 없으면 null */
+    private BasicExplanation basicExplanation(AnalysisJob job) {
+        String json = job.getBasicExplanation();
+        return json == null ? null : jsonMapper.readValue(json, BasicExplanation.class);
     }
 
     /** @param stale 잠금 없이 읽었을 때 오래 멈춘 PENDING이었는지 */

@@ -82,7 +82,7 @@ erDiagram
 | attempt_count | TINYINT | NOT NULL, DEFAULT 1 | 첫 시도 포함 최대 3. `remainingRetries = 3 - attempt_count` |
 | error_code | VARCHAR(30) | NULL | AI_TIMEOUT / AI_INVALID_JSON / AI_API_ERROR |
 | findings | JSON | NULL | COMPARE 결과 항목 배열. `[{category, title, userQuote, aiPerspective, detail, followUpQuestion}]`, AI가 준 순서 그대로 |
-| basic_explanation | TEXT | NULL | BASIC일 때만 |
+| basic_explanation | TEXT | NULL | BASIC일 때만. `{summary, exampleCode, observe, change}` JSON 문자열 (Figma 10번 네 칸) |
 | is_demo | BOOLEAN | NOT NULL, DEFAULT FALSE | 저장된 예시 응답 여부 |
 | created_at | DATETIME(6) | NOT NULL |  |
 | completed_at | DATETIME(6) | NULL | DONE이 된 시각 |

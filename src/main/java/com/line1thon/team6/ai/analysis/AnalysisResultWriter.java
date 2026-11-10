@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,6 +32,7 @@ public class AnalysisResultWriter {
     private final ChatRepository chatRepository;
     private final AnalysisJobService analysisJobService;
     private final LockService lockService;
+    private final JsonMapper jsonMapper;
 
     /** @return 저장했으면 true, PENDING이 아니어서 버렸으면 false */
     @Transactional
@@ -40,6 +42,18 @@ public class AnalysisResultWriter {
             return false;
         }
         job.get().recordFindings(findings.stream().map(CompareFinding::toMap).toList());
+        lockService.completeJob(chatId, jobId);
+        return true;
+    }
+
+    /** 기초 설명 저장 + 잠금 해제(UNLOCKED_ASSISTED). @return 저장했으면 true, PENDING이 아니어서 버렸으면 false */
+    @Transactional
+    public boolean completeBasic(Long chatId, Long jobId, BasicExplanation explanation) {
+        Optional<AnalysisJob> job = pendingJob(chatId, jobId, "결과");
+        if (job.isEmpty()) {
+            return false;
+        }
+        job.get().recordBasicExplanation(jsonMapper.writeValueAsString(explanation));
         lockService.completeJob(chatId, jobId);
         return true;
     }

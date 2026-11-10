@@ -19,7 +19,7 @@ import static com.line1thon.team6.ai.service.JsonSchemas.string;
 final class ComparePrompt {
 
     /** ai_usage_log.prompt_version */
-    static final String VERSION = "compare-tmp1";
+    static final String VERSION = "compare-tmp2";
 
     /** 작업별 최대 출력 토큰 (R4) */
     static final int MAX_OUTPUT_TOKENS = 2500;
@@ -50,8 +50,7 @@ final class ComparePrompt {
             - supplement: 사용자가 놓친, 사실이고 확인할 수 있는 추가 정보. 관련 발언이 없으면 user_quote는 ""
             - unique: 기준 답변에는 없지만 타당한 사용자의 관점
             - error: 사실과 분명히 다른 사용자 발언. conflict는 기준 답변과 충돌하는 내용, how_to_check는 사용자가 직접 확인하는 방법
-            - judgment_hold: 근거가 부족하거나 뜻이 모호해 판단을 보류한 내용. follow_up_question으로 되묻는다.
-              특정 발언이 없으면 user_quote는 ""
+            - judgment_hold: 근거가 부족하거나 뜻이 모호해 판단을 보류한 사용자 발언. follow_up_question으로 되묻는다
             분명한 오류는 error, 근거가 부족하면 judgment_hold로 나눈다.
 
             규칙:
