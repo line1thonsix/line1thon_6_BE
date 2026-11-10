@@ -1,6 +1,7 @@
 package com.line1thon.team6.ai.prepare;
 
 import com.line1thon.team6.ai.exception.AiOutputInvalidException;
+import com.line1thon.team6.ai.service.AiJsonText;
 import com.line1thon.team6.ai.service.AiOutputParser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -25,7 +26,7 @@ public class PrepareOutputParser implements AiOutputParser<PrepareOutput> {
     public PrepareOutput parse(String text) {
         JsonNode root;
         try {
-            root = jsonMapper.readTree(stripCodeFence(text));
+            root = jsonMapper.readTree(AiJsonText.stripCodeFence(text));
         } catch (JacksonException e) {
             throw new AiOutputInvalidException(List.of("JSON으로 읽을 수 없습니다"));
         }
@@ -78,21 +79,5 @@ public class PrepareOutputParser implements AiOutputParser<PrepareOutput> {
             return null;
         }
         return node.asString().strip();
-    }
-
-    /** 규칙상 JSON만 출력해야 하지만, ```json 으로 감싸 오는 경우는 벗겨서 읽는다 */
-    static String stripCodeFence(String text) {
-        if (text == null) {
-            return "";
-        }
-        String s = text.strip();
-        if (s.startsWith("```")) {
-            int firstLineEnd = s.indexOf('\n');
-            s = firstLineEnd < 0 ? "" : s.substring(firstLineEnd + 1);
-            if (s.endsWith("```")) {
-                s = s.substring(0, s.length() - 3);
-            }
-        }
-        return s.strip();
     }
 }
