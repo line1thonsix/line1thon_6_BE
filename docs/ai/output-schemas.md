@@ -92,7 +92,7 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 
 B는 분류별 배열을 하나의 `findings` 배열로 펼쳐 `analysis_job.findings`에 저장하고, 그대로 `GET /chats/{chatId}/analysis`의 `findings`로 응답합니다.
 
-Figma 08번 화면은 "내 생각" 칸과 "AI 참고 관점" 칸이 나뉘어 있습니다. 그래서 AI의 관점(`ai_view`, `conflict`)은 `aiPerspective`에, 근거(`reason`, `how_to_check`)는 `detail`에 따로 담습니다. 지금 DB 스키마와 API 명세의 항목에는 `aiPerspective`가 없어 추가가 필요합니다 (협의 P8).
+Figma 08번 화면은 "내 생각" 칸과 "AI 참고 관점" 칸이 나뉘어 있습니다. 그래서 AI의 관점(`ai_view`, `conflict`)은 `aiPerspective`에, 근거(`reason`, `how_to_check`)는 `detail`에 따로 담습니다. 항목별 "AI" 칸은 `aiPerspective`이고, 화면 맨 위의 "AI의 참고 관점"(기준 답변 전체)은 응답의 `referenceAnswer`입니다 (협의 P8, Figma 08번 확인).
 
 | AI 분류 | `category` | `userQuote` | `aiPerspective` | `detail` | `followUpQuestion` |
 | --- | --- | --- | --- | --- | --- |
@@ -144,4 +144,4 @@ DB는 `analysis_job.basic_explanation` (TEXT) 하나, API는 `basicExplanation` 
 | P5 | 판단 보류의 개수 | AI 출력은 객체 하나(최대 1개)이고, API는 `UNDETERMINED` 항목을 여러 개 담을 수 있습니다. | 다른 분류처럼 배열로 맞춥니다. | AI 담당 |
 | P6 | 원문에 없는 인용 | 검증에 실패한 항목의 처리가 정해지지 않았습니다. | 그 항목만 버리고, 남은 항목이 없으면 다시 호출합니다. | AI 담당 |
 | P7 | 근거 펼침 (Figma 08-1~08-5) | Figma에는 "직접 확인하는 방법"과 코드 예시가 있지만, AI 출력에는 `error`의 `how_to_check`만 있습니다. | MVP는 `how_to_check`만 쓰고, 다른 분류는 `reason`을 근거로 보여 줍니다. | AI 담당, 프론트 |
-| P8 | 비교 항목의 `aiPerspective` | Figma는 "내 생각"과 "AI 참고 관점"을 나눠 보여 주는데, DB의 `findings`와 API 응답에는 AI 관점을 담을 필드가 없습니다. | `findings` 항목에 `aiPerspective`를 추가합니다. `findings`가 JSON 컬럼이라 테이블 변경은 없고 DB 스키마 문서와 API 명세만 고치면 됩니다. | A, 프론트 |
+| P8 | 비교 항목의 `aiPerspective` | Figma는 "내 생각"과 "AI 참고 관점"을 나눠 보여 주는데, DB의 `findings`와 API 응답에는 AI 관점을 담을 필드가 없습니다. | **결정:** `findings` 항목에 `aiPerspective`를 추가합니다. DB 스키마 문서는 반영했고, Notion 분석 조회 명세는 A가 고칩니다. | A, 프론트 |
