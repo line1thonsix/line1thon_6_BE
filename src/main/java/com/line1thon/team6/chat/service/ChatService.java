@@ -10,6 +10,7 @@ import com.line1thon.team6.chat.entity.PrepareStatus;
 import com.line1thon.team6.chat.event.PrepareRequested;
 import com.line1thon.team6.chat.exception.ChatErrorCode;
 import com.line1thon.team6.chat.repository.ChatRepository;
+import com.line1thon.team6.chat.repository.ThoughtRepository;
 import com.line1thon.team6.analysis.service.AnalysisJobService;
 import com.line1thon.team6.global.common.KoreaTime;
 import com.line1thon.team6.global.exception.BusinessException;
@@ -36,6 +37,7 @@ public class ChatService {
     static final Duration PREPARE_TIMEOUT = Duration.ofMinutes(1);
 
     private final ChatRepository chatRepository;
+    private final ThoughtRepository thoughtRepository;
     private final SecretMasker secretMasker;
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate transactionTemplate;
@@ -91,7 +93,9 @@ public class ChatService {
             // 조건부 UPDATE가 영속성 컨텍스트를 비웠으니 바뀐 값을 다시 읽는다
             chat = getOwnedChat(session, chatId);
         }
-        return ChatDetailResponse.from(chat);
+        return ChatDetailResponse.from(chat,
+                thoughtRepository.findByChat(chat).orElse(null),
+                analysisJobService.findByChatId(chat.getId()).orElse(null));
     }
 
     /**
