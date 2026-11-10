@@ -4,6 +4,7 @@ import com.line1thon.team6.ai.exception.AiErrorCode;
 import com.line1thon.team6.analysis.entity.AnalysisJob;
 import com.line1thon.team6.analysis.entity.AnalysisStatus;
 import com.line1thon.team6.analysis.service.AnalysisJobService;
+import com.line1thon.team6.chat.repository.ChatRepository;
 import com.line1thon.team6.chat.service.LockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,13 +17,17 @@ import java.util.Optional;
 /**
  * 분석 결과를 작업에 저장한다. AI 호출이 끝난 뒤 짧은 트랜잭션으로만 쓴다.
  * 성공하면 결과 저장과 LockService.completeJob(DONE + 잠금 해제)을 같은 트랜잭션에서 한다 (A와 합의, PR #10).
- * PENDING이 아닌 작업(이미 끝났거나 실패로 바뀐 작업)이면 아무것도 바꾸지 않는다.
+ * <p>
+ * 작업 상태를 바꾸는 일은 모두 채팅 행 잠금(SELECT ... FOR UPDATE) 아래에서 한다 (PR #14 리뷰).
+ * 그래서 상태 확인도 행을 잠근 뒤에 한다. 시간 초과·재시도처럼 같은 작업을 바꾸는 처리와 겹쳐도 차례로 실행되고,
+ * 먼저 PENDING이 아니게 바뀌었으면 늦게 온 결과는 버려진다.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AnalysisResultWriter {
 
+    private final ChatRepository chatRepository;
     private final AnalysisJobService analysisJobService;
     private final LockService lockService;
 
@@ -46,7 +51,13 @@ public class AnalysisResultWriter {
         return job.isPresent();
     }
 
+    /** 채팅 행을 잠근 뒤 PENDING인 작업을 읽는다. 채팅이 없거나 PENDING이 아니면 empty */
     private Optional<AnalysisJob> pendingJob(Long chatId, Long jobId, String what) {
+        if (chatRepository.findByIdForUpdate(chatId).isEmpty()) {
+            // 결과가 오기 전에 사용자가 대화를 지운 경우
+            log.warn("분석 {}를 버림: 채팅 없음 chatId={} jobId={}", what, chatId, jobId);
+            return Optional.empty();
+        }
         Optional<AnalysisJob> job = analysisJobService.findByChatId(chatId).filter(j -> j.getId().equals(jobId));
         if (job.isEmpty()) {
             log.warn("분석 {}를 버림: 작업 없음 chatId={} jobId={}", what, chatId, jobId);
