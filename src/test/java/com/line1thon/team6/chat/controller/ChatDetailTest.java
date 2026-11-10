@@ -1,10 +1,13 @@
 package com.line1thon.team6.chat.controller;
 
+import com.line1thon.team6.analysis.entity.AnalysisMode;
+import com.line1thon.team6.analysis.repository.AnalysisJobRepository;
 import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.chat.entity.PrepareStatus;
 import com.line1thon.team6.chat.entity.QuestionType;
 import com.line1thon.team6.chat.repository.ChatRepository;
 import com.line1thon.team6.chat.service.ChatService;
+import com.line1thon.team6.chat.service.LockService;
 import com.line1thon.team6.global.common.KoreaTime;
 import com.line1thon.team6.session.entity.GuestSession;
 import com.line1thon.team6.session.repository.GuestSessionRepository;
@@ -14,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -26,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -49,6 +54,12 @@ class ChatDetailTest {
 
     @Autowired
     ChatService chatService;
+
+    @Autowired
+    LockService lockService;
+
+    @Autowired
+    AnalysisJobRepository analysisJobRepository;
 
     @Autowired
     JdbcTemplate jdbcTemplate;
@@ -153,6 +164,90 @@ class ChatDetailTest {
                 .andExpect(jsonPath("$.hints[1].text").value("힌트2"))
                 .andExpect(jsonPath("$.hasNextHint").value(false))
                 .andExpect(jsonPath("$.basicModeAvailable").value(true));
+    }
+
+    // ===== 생각 제출, 분석 작업 =====
+
+    private static final String THOUGHT = "첫 렌더링 때 users 값부터 볼게요. 데이터가 오기 전에는 undefined라서요.";
+
+    private void submitThought(Long chatId, Integer selectedChoice) throws Exception {
+        mockMvc.perform(post("/api/chats/{chatId}/thoughts", chatId)
+                        .header("X-Guest-Token", token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"content": "%s", "selectedChoice": %s}
+                                """.formatted(THOUGHT, selectedChoice)))
+                .andExpect(status().isAccepted());
+    }
+
+    @Test
+    void 생각을_제출하면_제출한_생각과_PENDING_분석_작업을_돌려준다() throws Exception {
+        Long chatId = doneChat();
+        submitThought(chatId, 1);
+        Long jobId = analysisJobRepository.findByChatId(chatId).orElseThrow().getId();
+
+        getDetail(chatId)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("LOCKED"))
+                .andExpect(jsonPath("$.thought").value(THOUGHT))
+                .andExpect(jsonPath("$.selectedChoice").value(1))
+                .andExpect(jsonPath("$.hintUsed").value(false))
+                .andExpect(jsonPath("$.analysis.jobId").value(jobId))
+                .andExpect(jsonPath("$.analysis.mode").value("COMPARE"))
+                .andExpect(jsonPath("$.analysis.status").value("PENDING"))
+                .andExpect(jsonPath("$.analysis.retryCount").value(0))
+                .andExpect(jsonPath("$.analysis.remainingRetries").value(2));
+    }
+
+    @Test
+    void 힌트를_보고_칩_없이_제출하면_hintUsed가_true이고_칩_번호는_null() throws Exception {
+        Long chatId = doneChat();
+        setHintLevel(chatId, 1);
+        submitThought(chatId, null);
+
+        getDetail(chatId)
+                .andExpect(jsonPath("$.thought").value(THOUGHT))
+                .andExpect(jsonPath("$.selectedChoice").isEmpty())
+                .andExpect(jsonPath("$.hintUsed").value(true));
+    }
+
+    @Test
+    void 힌트_2단계여도_분석_작업이_있으면_기초_학습을_못_한다() throws Exception {
+        Long chatId = doneChat();
+        setHintLevel(chatId, 2);
+        submitThought(chatId, null);
+
+        getDetail(chatId)
+                .andExpect(jsonPath("$.hasNextHint").value(false))
+                .andExpect(jsonPath("$.basicModeAvailable").value(false));
+    }
+
+    @Test
+    void 기초_학습으로_만든_작업은_BASIC으로_돌려주고_생각은_null() throws Exception {
+        Long chatId = doneChat();
+        setHintLevel(chatId, 2);
+        lockService.startJob(session, chatId, AnalysisMode.BASIC);
+
+        getDetail(chatId)
+                .andExpect(jsonPath("$.thought").isEmpty())
+                .andExpect(jsonPath("$.hintUsed").value(false))
+                .andExpect(jsonPath("$.basicModeAvailable").value(false))
+                .andExpect(jsonPath("$.analysis.mode").value("BASIC"))
+                .andExpect(jsonPath("$.analysis.status").value("PENDING"));
+    }
+
+    @Test
+    void 분석이_끝나도_분석_작업을_DONE으로_돌려준다() throws Exception {
+        Long chatId = doneChat();
+        submitThought(chatId, 0);
+        Long jobId = analysisJobRepository.findByChatId(chatId).orElseThrow().getId();
+        lockService.completeJob(chatId, jobId);
+
+        getDetail(chatId)
+                .andExpect(jsonPath("$.status").value("UNLOCKED_SELF"))
+                .andExpect(jsonPath("$.thought").value(THOUGHT))
+                .andExpect(jsonPath("$.analysis.jobId").value(jobId))
+                .andExpect(jsonPath("$.analysis.status").value("DONE"));
     }
 
     @Test

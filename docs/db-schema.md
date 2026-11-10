@@ -21,7 +21,7 @@ erDiagram
 | `guest_session` | A | 게스트 토큰 |
 | `chat` | A | 질문, 잠금 상태, 선생성 결과(칩·힌트·기준 답변) |
 | `thought` | A | 생각 최초 작성본 (채팅당 1개, 수정 불가) |
-| `analysis_job` | B | 비교 분석 / 기초 설명 작업과 결과 (채팅당 1개) |
+| `analysis_job` | A | 비교 분석 / 기초 설명 작업과 결과 (채팅당 1개). 결과 저장은 B의 분석 리스너가 함 |
 | `ai_usage_log` | B | AI 호출 기록 (FK 없음) |
 
 ## 테이블 상세
@@ -216,4 +216,4 @@ CREATE TABLE ai_usage_log (
 ## 확인할 것
 
 - [x] DB 종류 (MySQL 8 가정)
-- [ ] B: `analysis_job`, `ai_usage_log` 컬럼이 B 구현과 맞는지
+- [ ] B: `analysis_job` 결과 컬럼(`error_code`, `findings`, `basic_explanation`)과 `ai_usage_log` 컬럼이 B 구현과 맞는지

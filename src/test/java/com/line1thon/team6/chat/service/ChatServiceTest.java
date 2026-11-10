@@ -5,6 +5,7 @@ import com.line1thon.team6.chat.dto.ChatCreateRequest;
 import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.chat.entity.QuestionType;
 import com.line1thon.team6.chat.repository.ChatRepository;
+import com.line1thon.team6.chat.repository.ThoughtRepository;
 import com.line1thon.team6.session.entity.GuestSession;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -28,7 +29,8 @@ class ChatServiceTest {
 
     private final ChatRepository chatRepository = mock(ChatRepository.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
-    private final ChatService chatService = new ChatService(chatRepository, new SecretMasker(), eventPublisher,
+    private final ChatService chatService = new ChatService(chatRepository, mock(ThoughtRepository.class),
+            new SecretMasker(), eventPublisher,
             new TransactionTemplate(mock(PlatformTransactionManager.class)), mock(AnalysisJobService.class));
 
     private final GuestSession session = new GuestSession(UUID.randomUUID().toString());
