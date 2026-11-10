@@ -24,11 +24,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.transaction.support.TransactionTemplate;
+import jakarta.persistence.EntityManager;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -87,7 +88,10 @@ class AnalysisApiTest {
     AnalysisJobRepository analysisJobRepository;
 
     @Autowired
-    JdbcTemplate jdbcTemplate;
+    EntityManager entityManager;
+
+    @Autowired
+    TransactionTemplate transactionTemplate;
 
     @Autowired
     ApplicationEvents events;
@@ -137,9 +141,16 @@ class AnalysisApiTest {
         return analysisJobRepository.findById(jobId).orElseThrow();
     }
 
-    /** 지금 시도를 시작한 시각을 과거로 옮긴다 (멈춘 작업 흉내) */
+    /**
+     * 지금 시도를 시작한 시각을 과거로 옮긴다 (멈춘 작업 흉내).
+     * hibernate.jdbc.time_zone 변환을 똑같이 거치도록 JDBC가 아니라 JPQL로 바꾼다 (서버 시간대가 UTC인 CI에서도 맞게)
+     */
     private void startedAgo(Long jobId, Duration ago) {
-        jdbcTemplate.update("update analysis_job set started_at = ? where id = ?", KoreaTime.now().minus(ago), jobId);
+        transactionTemplate.executeWithoutResult(status -> entityManager
+                .createQuery("update AnalysisJob j set j.startedAt = :startedAt where j.id = :id")
+                .setParameter("startedAt", KoreaTime.now().minus(ago))
+                .setParameter("id", jobId)
+                .executeUpdate());
     }
 
     // ===== 조회 =====
