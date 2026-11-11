@@ -82,6 +82,16 @@ class OpenApiTest {
     }
 
     @Test
+    void 프록시가_https로_받았으면_문서의_서버_주소도_https다() throws Exception {
+        // Railway처럼 앞단이 https를 받고 앱에는 http로 넘기는 상황
+        mockMvc.perform(get("/v3/api-docs")
+                        .header("X-Forwarded-Proto", "https")
+                        .header("X-Forwarded-Host", "line1thon6be-production.up.railway.app"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.servers[0].url").value("https://line1thon6be-production.up.railway.app"));
+    }
+
+    @Test
     void Swagger_화면은_토큰_없이_열린다() throws Exception {
         mockMvc.perform(get("/swagger-ui/index.html"))
                 .andExpect(status().isOk());
