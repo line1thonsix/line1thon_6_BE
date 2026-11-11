@@ -63,6 +63,25 @@ class OpenApiTest {
     }
 
     @Test
+    void 최근_대화_목록과_삭제_API도_문서에_나온다() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/chats'].get.summary").value("최근 대화 목록"))
+                .andExpect(jsonPath("$.paths['/api/chats'].get.tags[0]").value("채팅"))
+                .andExpect(jsonPath("$.paths['/api/chats'].get.parameters.length()").value(1))
+                .andExpect(jsonPath("$.paths['/api/chats'].get.parameters[0].name").value("limit"))
+                .andExpect(jsonPath("$.paths['/api/chats'].get.parameters[0].required").value(false))
+                .andExpect(jsonPath("$.paths['/api/chats/{chatId}'].delete.summary").value("대화 삭제"))
+                .andExpect(jsonPath("$.paths['/api/chats/{chatId}'].delete.tags[0]").value("채팅"))
+                .andExpect(jsonPath("$.paths['/api/chats/{chatId}'].delete.responses['204']").exists())
+                .andExpect(jsonPath("$.paths['/api/sessions/me'].delete.summary").value("전체 데이터 삭제"))
+                .andExpect(jsonPath("$.paths['/api/sessions/me'].delete.tags[0]").value("세션"))
+                .andExpect(jsonPath("$.paths['/api/sessions/me'].delete.parameters").doesNotExist())
+                // 토큰이 필요한 API라서 토큰 발급처럼 security를 빈 배열로 덮어쓰지 않는다
+                .andExpect(jsonPath("$.paths['/api/sessions/me'].delete.security").doesNotExist());
+    }
+
+    @Test
     void Swagger_화면은_토큰_없이_열린다() throws Exception {
         mockMvc.perform(get("/swagger-ui/index.html"))
                 .andExpect(status().isOk());

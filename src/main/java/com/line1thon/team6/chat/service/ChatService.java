@@ -3,6 +3,7 @@ package com.line1thon.team6.chat.service;
 import com.line1thon.team6.chat.dto.ChatCreateRequest;
 import com.line1thon.team6.chat.dto.ChatCreateResponse;
 import com.line1thon.team6.chat.dto.ChatDetailResponse;
+import com.line1thon.team6.chat.dto.ChatListResponse;
 import com.line1thon.team6.chat.dto.OpenedHint;
 import com.line1thon.team6.chat.dto.PrepareRetryResponse;
 import com.line1thon.team6.chat.entity.Chat;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -35,6 +37,10 @@ public class ChatService {
 
     /** 이 시간이 넘도록 PREPARING이면 조회할 때 FAILED로 바꾼다 (API 명세서: 1분) */
     static final Duration PREPARE_TIMEOUT = Duration.ofMinutes(1);
+
+    /** 최근 대화 목록 기본 개수와 최대 개수 (API 명세서: 기본 20, 최대 50) */
+    public static final int DEFAULT_LIST_LIMIT = 20;
+    public static final int MAX_LIST_LIMIT = 50;
 
     private final ChatRepository chatRepository;
     private final ThoughtRepository thoughtRepository;
@@ -96,6 +102,34 @@ public class ChatService {
         return ChatDetailResponse.from(chat,
                 thoughtRepository.findByChat(chat).orElse(null),
                 analysisJobService.findByChatId(chat.getId()).orElse(null));
+    }
+
+    /**
+     * 최근 대화 목록. 내 대화만 최신순으로 limit개 (없으면 빈 배열).
+     * limit을 안 보내면 20개, 50을 넘으면 50개까지만 준다. 1보다 작으면 400 INVALID_INPUT.
+     */
+    @Transactional(readOnly = true)
+    public ChatListResponse getList(GuestSession session, Integer limit) {
+        int size = limit == null ? DEFAULT_LIST_LIMIT : limit;
+        if (size < 1) {
+            throw new BusinessException(GlobalErrorCode.INVALID_INPUT);
+        }
+        List<Chat> chats = chatRepository.findByGuestSessionOrderByCreatedAtDescIdDesc(
+                session, PageRequest.of(0, Math.min(size, MAX_LIST_LIMIT)));
+        return ChatListResponse.from(chats);
+    }
+
+    /**
+     * 대화 삭제. 없거나 남의 대화면 404 CHAT_NOT_FOUND.
+     * chat 행 하나만 지우면 생각·분석 작업은 DB의 ON DELETE CASCADE가 같은 트랜잭션에서 함께 지운다.
+     * 분석이나 선생성이 백그라운드에서 돌던 중이면, 끝나고 결과를 쓸 때 채팅이 없어서 버려진다
+     * (completePrepare의 조건부 UPDATE가 0을 받고, B의 결과 저장도 채팅이 없으면 건너뜀).
+     */
+    @Transactional
+    public void delete(GuestSession session, Long chatId) {
+        if (chatRepository.deleteOwned(chatId, session) == 0) {
+            throw new BusinessException(GlobalErrorCode.CHAT_NOT_FOUND);
+        }
     }
 
     /**
