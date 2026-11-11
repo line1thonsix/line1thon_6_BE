@@ -3,6 +3,7 @@ package com.line1thon.team6.chat.repository;
 import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.session.entity.GuestSession;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -20,6 +21,18 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
 
     /** 내 대화만 찾는다 (소유권 확인). 남의 대화도 없는 대화처럼 빈 값 */
     Optional<Chat> findByIdAndGuestSession(Long id, GuestSession guestSession);
+
+    /** 내 대화 최신순 (최근 대화 목록). 같은 시각이면 나중에 만든 것(id 큰 것)이 먼저. INDEX (guest_session_id, created_at) 사용 */
+    List<Chat> findByGuestSessionOrderByCreatedAtDescIdDesc(GuestSession guestSession, Pageable pageable);
+
+    /**
+     * 내 대화를 지운다. 생각·분석 작업 행은 DB의 FK(ON DELETE CASCADE)가 함께 지운다 (JPA cascade는 쓰지 않음).
+     * 소유권 확인과 삭제가 쿼리 하나라서, 남의 대화나 없는 대화면 아무것도 지우지 않고 0을 돌려준다.
+     * @return 지운 행 수. 0이면 없거나 남의 대화
+     */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from Chat c where c.id = :id and c.guestSession = :guestSession")
+    int deleteOwned(@Param("id") Long id, @Param("guestSession") GuestSession guestSession);
 
     /**
      * 내 대화를 행 잠금(SELECT ... FOR UPDATE)으로 읽는다. 트랜잭션이 끝날 때까지 같은 채팅의 다른 잠금 요청은 기다린다.
