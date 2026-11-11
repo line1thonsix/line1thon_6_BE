@@ -3,6 +3,7 @@ package com.line1thon.team6.chat.service;
 import com.line1thon.team6.analysis.entity.AnalysisJob;
 import com.line1thon.team6.analysis.entity.AnalysisMode;
 import com.line1thon.team6.analysis.entity.AnalysisStatus;
+import com.line1thon.team6.analysis.exception.AnalysisErrorCode;
 import com.line1thon.team6.analysis.service.AnalysisJobService;
 import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.chat.entity.ChatStatus;
@@ -98,6 +99,35 @@ public class LockService {
         chat.unlock(job.getMode());
         log.info("잠금 해제: chatId={} jobId={} status={}", chatId, jobId, chat.getStatus());
         return chat.getStatus();
+    }
+
+    /**
+     * 분석 재시도 (B, PR #14 리뷰). 채팅 행을 잠근 뒤 확인하고 작업을 다시 PENDING으로 돌린다.
+     * 같은 트랜잭션에서 AnalysisRequested를 발행해 B의 분석 리스너가 커밋 후 다시 AI를 부른다.
+     * 채팅 status는 LOCKED 그대로다.
+     * <ul>
+     *   <li>없거나 남의 대화: 404 CHAT_NOT_FOUND</li>
+     *   <li>분석 작업 없음: 404 ANALYSIS_NOT_FOUND</li>
+     *   <li>작업이 FAILED가 아님 (PENDING, DONE): 409 NOT_RETRYABLE. 재시도를 두 번 눌러도 두 번째는 여기서 막힌다</li>
+     *   <li>첫 시도 포함 3번 모두 실패: 409 RETRY_LIMIT_EXCEEDED</li>
+     * </ul>
+     */
+    @Transactional
+    public AnalysisJob retryJob(GuestSession session, Long chatId) {
+        Chat chat = chatRepository.findOwnedForUpdate(chatId, session)
+                .orElseThrow(() -> new BusinessException(GlobalErrorCode.CHAT_NOT_FOUND));
+        AnalysisJob job = analysisJobService.findByChatId(chat.getId())
+                .orElseThrow(() -> new BusinessException(AnalysisErrorCode.ANALYSIS_NOT_FOUND));
+        if (job.getStatus() != AnalysisStatus.FAILED) {
+            throw new BusinessException(AnalysisErrorCode.NOT_RETRYABLE);
+        }
+        if (!job.canRetry()) {
+            throw new BusinessException(AnalysisErrorCode.RETRY_LIMIT_EXCEEDED);
+        }
+        job.retry();
+        eventPublisher.publishEvent(new AnalysisRequested(chat.getId(), job.getId()));
+        log.info("분석 재시도: chatId={} jobId={} attemptCount={}", chat.getId(), job.getId(), job.getAttemptCount());
+        return job;
     }
 
     /**

@@ -77,7 +77,7 @@ AI 호출이 실패해도 API는 오류로 응답하지 않습니다. 실패는 
 | `AI_INVALID_JSON` | 응답이 AI 출력 형식에 맞지 않음 (내부 재호출 포함) |
 | `AI_API_ERROR` | AI 제공사 API 오류 (인증, 사용량 초과, 서버 오류 등) |
 
-오래 멈춘 작업의 기준은 질문 생성이 1분 넘게 `PREPARING`일 때입니다 (DB 스키마의 `prepare_started_at`). 분석 작업의 기준은 구현할 때 정합니다.
+오래 멈춘 작업의 기준은 질문 생성이 1분 넘게 `PREPARING`일 때입니다 (DB 스키마의 `prepare_started_at`). 분석 작업은 지금 시도를 시작한 뒤(`analysis_job.started_at`) 2분 넘게 `PENDING`이면 `GET /chats/{chatId}/analysis`를 조회할 때 `FAILED`(`AI_TIMEOUT`)로 바꿉니다. 정상 작업은 최대 45초(15초 × 3번)라 걸리지 않습니다.
 
 ## 쓰지 않는 코드
 

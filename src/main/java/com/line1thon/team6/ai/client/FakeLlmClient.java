@@ -1,14 +1,12 @@
 package com.line1thon.team6.ai.client;
 
-import com.line1thon.team6.ai.exception.AiErrorCode;
-import com.line1thon.team6.ai.exception.AiException;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.Map;
 
 /**
- * API 키가 없을 때 쓰는 가짜 클라이언트. 실제 AI 없이 선생성·비교 분석 흐름을 끝까지 확인할 수 있게 고정 JSON을 돌려준다.
+ * API 키가 없을 때 쓰는 가짜 클라이언트. 실제 AI 없이 선생성·비교 분석·기초 설명 흐름을 끝까지 확인할 수 있게 고정 JSON을 돌려준다.
  * 출력은 실제 응답과 같은 검증을 거친다.
  */
 public class FakeLlmClient implements LlmClient {
@@ -20,6 +18,15 @@ public class FakeLlmClient implements LlmClient {
               "choices": ["값이 아직 준비되지 않은 시점", "함수가 실행되는 순서", "초기값의 형태"],
               "hints": ["처음 화면을 그릴 때 이 값은 무엇일까요?", "데이터가 도착하기 전과 후를 나눠서 생각해 보세요."],
               "reference_answer": "가짜 AI 응답입니다. GEMINI_API_KEY를 설정하면 실제 기준 답변이 생성됩니다."
+            }
+            """;
+
+    static final String BASIC_OUTPUT = """
+            {
+              "summary": "가짜 AI 응답입니다. 값이 준비되기 전에 쓰면 undefined가 될 수 있어요.",
+              "example_code": "const [users, setUsers] = useState([]);",
+              "observe": "처음 화면을 그릴 때 값이 무엇인지 console.log로 확인해 보세요.",
+              "change": "초기값을 바꿔 보고 화면이 어떻게 달라지는지 비교해 보세요."
             }
             """;
 
@@ -38,9 +45,7 @@ public class FakeLlmClient implements LlmClient {
         return switch (request.callType()) {
             case PREPARE -> new LlmResponse(PREPARE_OUTPUT, null, null, "STOP");
             case COMPARE -> new LlmResponse(compareOutput(request), null, null, "STOP");
-            // 기초 설명은 해당 기능을 만들 때 추가한다
-            case BASIC -> throw new AiException(AiErrorCode.AI_API_ERROR,
-                    "가짜 클라이언트가 지원하지 않는 호출: " + request.callType());
+            case BASIC -> new LlmResponse(BASIC_OUTPUT, null, null, "STOP");
         };
     }
 

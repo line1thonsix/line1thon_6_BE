@@ -14,6 +14,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * 분석 작업 실행: 생각 제출(COMPARE)이나 기초 학습(BASIC)으로 PENDING이 된 작업의 AI를 부르고 결과를 저장한다.
@@ -27,16 +29,19 @@ public class AnalysisService {
     private final ThoughtRepository thoughtRepository;
     private final StructuredAiCaller aiCaller;
     private final CompareOutputParser compareOutputParser;
+    private final BasicOutputParser basicOutputParser;
     private final AnalysisResultWriter resultWriter;
     private final TransactionTemplate readOnlyTx;
 
     public AnalysisService(AnalysisJobService analysisJobService, ThoughtRepository thoughtRepository,
                            StructuredAiCaller aiCaller, CompareOutputParser compareOutputParser,
-                           AnalysisResultWriter resultWriter, PlatformTransactionManager transactionManager) {
+                           BasicOutputParser basicOutputParser, AnalysisResultWriter resultWriter,
+                           PlatformTransactionManager transactionManager) {
         this.analysisJobService = analysisJobService;
         this.thoughtRepository = thoughtRepository;
         this.aiCaller = aiCaller;
         this.compareOutputParser = compareOutputParser;
+        this.basicOutputParser = basicOutputParser;
         this.resultWriter = resultWriter;
         this.readOnlyTx = new TransactionTemplate(transactionManager);
         this.readOnlyTx.setReadOnly(true);
@@ -54,9 +59,10 @@ public class AnalysisService {
             return;
         }
         switch (input.mode()) {
-            case COMPARE -> compare(input);
-            // TODO 기초 학습 API(P4 합의 후)를 만들 때 기초 설명 호출을 추가한다. 지금은 BASIC 작업을 만드는 API가 없다
-            case BASIC -> log.warn("기초 설명은 아직 구현되지 않음: chatId={} jobId={}", chatId, jobId);
+            case COMPARE -> run(input, "비교 분석", () -> compare(input),
+                    findings -> resultWriter.completeCompare(input.chatId(), input.jobId(), findings));
+            case BASIC -> run(input, "기초 설명", () -> basic(input),
+                    explanation -> resultWriter.completeBasic(input.chatId(), input.jobId(), explanation));
         }
     }
 
@@ -67,33 +73,46 @@ public class AnalysisService {
                 .orElse(null));
     }
 
-    private void compare(AnalysisInput input) {
-        List<CompareFinding> findings;
+    private List<CompareFinding> compare(AnalysisInput input) {
+        if (input.thought() == null) {
+            throw new IllegalStateException("비교 분석 작업에 제출한 생각이 없음");
+        }
+        AiCallContext context = new AiCallContext(AiCallType.COMPARE, input.guestSessionId(), ComparePrompt.VERSION);
+        return aiCaller.call(context, ComparePrompt.request(input), compareOutputParser.forThought(input.thought()));
+    }
+
+    private BasicExplanation basic(AnalysisInput input) {
+        AiCallContext context = new AiCallContext(AiCallType.BASIC, input.guestSessionId(), BasicPrompt.VERSION);
+        return aiCaller.call(context, BasicPrompt.request(input), basicOutputParser);
+    }
+
+    /**
+     * AI를 부르고 결과를 저장한다. 호출 실패, 예상하지 못한 오류, 저장 실패 모두 작업을 FAILED로 바꾼다.
+     *
+     * @param save 결과 저장 + 잠금 해제. PENDING이 아니어서 버렸으면 false
+     */
+    private <T> void run(AnalysisInput input, String name, Supplier<T> call, Predicate<T> save) {
+        T result;
         try {
-            if (input.thought() == null) {
-                throw new IllegalStateException("비교 분석 작업에 제출한 생각이 없음");
-            }
-            AiCallContext context = new AiCallContext(AiCallType.COMPARE, input.guestSessionId(), ComparePrompt.VERSION);
-            findings = aiCaller.call(context, ComparePrompt.request(input),
-                    compareOutputParser.forThought(input.thought()));
+            result = call.get();
         } catch (AiException e) {
-            log.warn("비교 분석 실패: chatId={} jobId={} errorCode={} reason={}",
-                    input.chatId(), input.jobId(), e.getErrorCode(), e.getMessage());
+            log.warn("{} 실패: chatId={} jobId={} errorCode={} reason={}",
+                    name, input.chatId(), input.jobId(), e.getErrorCode(), e.getMessage());
             fail(input, e.getErrorCode());
             return;
         } catch (RuntimeException e) {
-            log.error("비교 분석 중 예상하지 못한 오류: chatId={} jobId={}", input.chatId(), input.jobId(), e);
+            log.error("{} 중 예상하지 못한 오류: chatId={} jobId={}", name, input.chatId(), input.jobId(), e);
             fail(input, AiErrorCode.AI_API_ERROR);
             return;
         }
 
         try {
-            if (resultWriter.completeCompare(input.chatId(), input.jobId(), findings)) {
-                log.info("비교 분석 완료: chatId={} jobId={} findings={}", input.chatId(), input.jobId(), findings.size());
+            if (save.test(result)) {
+                log.info("{} 완료: chatId={} jobId={}", name, input.chatId(), input.jobId());
             }
         } catch (RuntimeException e) {
             // 저장 트랜잭션이 롤백돼 작업은 아직 PENDING이다
-            log.error("비교 분석 결과 저장 실패: chatId={} jobId={}", input.chatId(), input.jobId(), e);
+            log.error("{} 결과 저장 실패: chatId={} jobId={}", name, input.chatId(), input.jobId(), e);
             fail(input, AiErrorCode.AI_API_ERROR);
         }
     }

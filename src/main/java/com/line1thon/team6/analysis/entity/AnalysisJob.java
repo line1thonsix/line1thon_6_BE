@@ -78,6 +78,13 @@ public class AnalysisJob {
     /** DONE이 된 시각 */
     private LocalDateTime completedAt;
 
+    /**
+     * 지금 시도를 시작한 시각. 첫 시도는 생성 시각이고 재시도하면 다시 기록한다.
+     * 오래 PENDING인 작업(서버 재시작 등으로 사라진 작업)을 실패로 바꾸는 기준이다.
+     * 이 컬럼이 생기기 전에 만든 행은 null이라 createdAt을 쓴다.
+     */
+    private LocalDateTime startedAt;
+
     /** 작업 시작 (전이 T4, T5): PENDING, 첫 시도 */
     public static AnalysisJob start(Chat chat, AnalysisMode mode) {
         AnalysisJob job = new AnalysisJob();
@@ -87,7 +94,36 @@ public class AnalysisJob {
         job.attemptCount = 1;
         job.isDemo = false;
         job.createdAt = KoreaTime.now();
+        job.startedAt = job.createdAt;
         return job;
+    }
+
+    /** 재시도 가능 횟수가 남았는지 (첫 시도 포함 최대 MAX_ATTEMPTS번) */
+    public boolean canRetry() {
+        return attemptCount < MAX_ATTEMPTS;
+    }
+
+    /**
+     * 재시도 (B). FAILED → PENDING, 시도 횟수 + 1. LockService.retryJob에서 채팅 행을 잠근 뒤에만 부른다.
+     * 같은 행을 다시 쓰고, 생각(최초 작성본)은 그대로 쓴다.
+     */
+    public void retry() {
+        if (status != AnalysisStatus.FAILED) {
+            throw new IllegalStateException("FAILED인 작업만 재시도할 수 있습니다: jobId=" + id + " status=" + status);
+        }
+        if (!canRetry()) {
+            throw new IllegalStateException("재시도 횟수를 모두 썼습니다: jobId=" + id + " attemptCount=" + attemptCount);
+        }
+        this.attemptCount++;
+        this.status = AnalysisStatus.PENDING;
+        this.errorCode = null;
+        this.startedAt = KoreaTime.now();
+    }
+
+    /** PENDING이고 지금 시도를 threshold보다 먼저 시작했으면 true (오래 멈춘 작업) */
+    public boolean isStale(LocalDateTime threshold) {
+        LocalDateTime started = startedAt != null ? startedAt : createdAt;
+        return status == AnalysisStatus.PENDING && started.isBefore(threshold);
     }
 
     /** 작업 완료 (전이 T6). LockService.completeJob에서만 부른다. 잠금 해제와 같은 트랜잭션이어야 한다 */
@@ -106,6 +142,17 @@ public class AnalysisJob {
     public void recordFindings(List<Map<String, Object>> findings) {
         requirePending("결과 저장");
         this.findings = findings;
+        this.errorCode = null;
+    }
+
+    /**
+     * 기초 설명 저장 (B). 같은 트랜잭션에서 이어서 LockService.completeJob을 불러 DONE과 잠금 해제(UNLOCKED_ASSISTED)를 한다.
+     *
+     * @param explanationJson {summary, exampleCode, observe, change} JSON 문자열
+     */
+    public void recordBasicExplanation(String explanationJson) {
+        requirePending("결과 저장");
+        this.basicExplanation = explanationJson;
         this.errorCode = null;
     }
 

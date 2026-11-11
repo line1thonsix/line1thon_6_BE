@@ -81,14 +81,16 @@ erDiagram
 | status | VARCHAR(10) | NOT NULL, DEFAULT 'PENDING' | PENDING / DONE / FAILED |
 | attempt_count | TINYINT | NOT NULL, DEFAULT 1 | 첫 시도 포함 최대 3. `remainingRetries = 3 - attempt_count` |
 | error_code | VARCHAR(30) | NULL | AI_TIMEOUT / AI_INVALID_JSON / AI_API_ERROR |
-| findings | JSON | NULL | COMPARE 결과 항목 배열. `[{category, title, detail, userQuote, followUpQuestion}]`, AI가 준 순서 그대로 |
-| basic_explanation | TEXT | NULL | BASIC일 때만 |
+| findings | JSON | NULL | COMPARE 결과 항목 배열. `[{category, title, userQuote, aiPerspective, detail, followUpQuestion}]`, AI가 준 순서 그대로 |
+| basic_explanation | TEXT | NULL | BASIC일 때만. `{summary, exampleCode, observe, change}` JSON 문자열 (Figma 10번 네 칸) |
 | is_demo | BOOLEAN | NOT NULL, DEFAULT FALSE | 저장된 예시 응답 여부 |
 | created_at | DATETIME(6) | NOT NULL |  |
 | completed_at | DATETIME(6) | NULL | DONE이 된 시각 |
+| started_at | DATETIME(6) | NULL | 지금 시도를 시작한 시각. 생성할 때와 재시도할 때 기록. 2분 넘게 PENDING이면 조회할 때 FAILED(`AI_TIMEOUT`)로 바꾸는 기준. NULL(컬럼 추가 전 행)이면 created_at |
 
 - `chat_id` UNIQUE로 "진행 중인 작업 최대 1개"를 DB에서도 보장해요. 즉, 한 채팅에 분석 작업 행이 두 개 생기는 걸 DB가 직접 막음. 정지 기능을 빼기로 해서 작업이 취소될 일이 없고, 재시도는 같은 행을 다시 PENDING으로 돌리므로 채팅당 작업은 평생 1개예요. 동시에 두 번 제출해도 두 번째 INSERT가 실패해요.
-- 비교 항목은 따로 가리킬 일이 없어서(판정 이의 제기 제외) 별도 테이블 없이 `findings` JSON 하나로 저장해요. 재시도에 성공하면 통째로 덮어써요. 응답의 `findings[].id`는 배열 순서(0, 1, 2...)로 대신하거나 빼면 돼요.
+- 비교 항목은 따로 가리킬 일이 없어서(판정 이의 제기 제외) 별도 테이블 없이 `findings` JSON 하나로 저장해요. 재시도에 성공하면 통째로 덮어써요. 응답의 `findings[].id`는 배열 순서(0, 1, 2...)로 내보내요 (`feedback.finding_index`와 같은 값).
+- `aiPerspective`는 Figma 08번 비교 카드의 항목별 "AI" 칸이에요. 화면 맨 위의 "AI의 참고 관점"(기준 답변 전체)은 `chat.reference_answer`를 분석 조회 응답의 `referenceAnswer`로 보여 줘요.
 
 ### feedback (MVP 제외)
 
@@ -180,6 +182,7 @@ CREATE TABLE analysis_job (
   is_demo            BOOLEAN     NOT NULL DEFAULT FALSE,
   created_at         DATETIME(6) NOT NULL,
   completed_at       DATETIME(6) NULL,
+  started_at         DATETIME(6) NULL,
   CONSTRAINT uk_job_chat UNIQUE (chat_id),
   CONSTRAINT fk_job_chat FOREIGN KEY (chat_id)
     REFERENCES chat (id) ON DELETE CASCADE
