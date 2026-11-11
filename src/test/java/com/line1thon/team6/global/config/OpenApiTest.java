@@ -30,6 +30,16 @@ class OpenApiTest {
     }
 
     @Test
+    void 현재_세션_인자는_요청_파라미터로_나오지_않는다() throws Exception {
+        // 채팅 상세의 파라미터는 경로의 chatId 하나뿐이어야 한다 (GuestSession 필드가 쿼리로 펼쳐지면 안 됨)
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paths['/api/chats/{chatId}'].get.parameters.length()").value(1))
+                .andExpect(jsonPath("$.paths['/api/chats/{chatId}'].get.parameters[0].name").value("chatId"))
+                .andExpect(jsonPath("$.paths['/api/chats'].post.parameters").doesNotExist());
+    }
+
+    @Test
     void Swagger_화면은_토큰_없이_열린다() throws Exception {
         mockMvc.perform(get("/swagger-ui/index.html"))
                 .andExpect(status().isOk());
