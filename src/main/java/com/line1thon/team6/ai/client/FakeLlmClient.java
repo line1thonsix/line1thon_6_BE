@@ -30,8 +30,8 @@ public class FakeLlmClient implements LlmClient {
             }
             """;
 
-    private static final String THOUGHT_START = "<thought>\n";
-    private static final String THOUGHT_END = "\n</thought>";
+    private static final String THOUGHT_START = "[사용자가 제출한 최초 생각 - 수정하지 말 것]\n\n";
+    private static final String THOUGHT_END = "\n\n[AI 기준 답변 - 참고 관점, 사용자에게 공개하지 말 것]";
     private static final int QUOTE_LENGTH = 20;
 
     private final JsonMapper jsonMapper;
