@@ -37,7 +37,8 @@
 | `CORS_ALLOWED_ORIGINS` | (프론트 배포 주소) | 프론트 배포 후 입력. 없으면 localhost만 허용 |
 | `TZ` | `Asia/Seoul` | 서버 시간대 |
 | `SPRING_JPA_HIBERNATE_DDL_AUTO` | `update` | **첫 배포에서 테이블을 만들기 위한 임시 값.** 테이블이 생기면 삭제해서 prod 기본값 `validate`로 되돌림 |
-| `DEVEIL_MODEL` | (선택) | 기본 `gemini-2.5-flash` |
+| `DEVEIL_MODEL` | (선택) | 기본 `gemini-3.5-flash-lite`. 기존 값이 `gemini-2.5-flash`면 변경하거나 삭제 |
+| `DEVEIL_THINKING_LEVEL` | (선택) | 기본 `MINIMAL`. `MINIMAL` / `LOW` / `MEDIUM` / `HIGH` |
 
 `${{MySQL.…}}`의 `MySQL`은 Railway의 MySQL 서비스 이름이에요. 서비스 이름을 바꾸면 여기도 같이 바꿔야 해요.
 

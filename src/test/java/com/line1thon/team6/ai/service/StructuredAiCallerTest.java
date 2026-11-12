@@ -45,7 +45,7 @@ class StructuredAiCallerTest {
     private final AiUsageRecorder recorder = mock(AiUsageRecorder.class);
     private final ScriptedClient client = new ScriptedClient();
     private final StructuredAiCaller caller = new StructuredAiCaller(client, recorder,
-            new AiProperties("key", "m", "http://x", Duration.ofSeconds(15), 0.2, 512, 3));
+            new AiProperties("key", "m", "http://x", Duration.ofSeconds(15), AiProperties.ThinkingLevel.MINIMAL, 3));
 
     @Test
     void 첫_응답이_맞으면_한_번만_부르고_성공으로_기록한다() {

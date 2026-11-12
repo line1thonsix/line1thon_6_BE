@@ -63,7 +63,7 @@ class GeminiClientTest {
 
     private GeminiClient client(Duration timeout) {
         String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort() + "/v1beta";
-        return new GeminiClient(new AiProperties("test-key", "gemini-2.5-flash", baseUrl, timeout, 0.2, 512, 3),
+        return new GeminiClient(new AiProperties("test-key", "gemini-3.5-flash-lite", baseUrl, timeout, AiProperties.ThinkingLevel.MINIMAL, 3),
                 jsonMapper);
     }
 
@@ -91,17 +91,20 @@ class GeminiClientTest {
         assertThat(response.outputTokens()).isEqualTo(262 + 405);
         assertThat(response.finishReason()).isEqualTo("STOP");
 
-        assertThat(receivedPath.get()).isEqualTo("/v1beta/models/gemini-2.5-flash:generateContent");
+        assertThat(receivedPath.get()).isEqualTo("/v1beta/models/gemini-3.5-flash-lite:generateContent");
         assertThat(receivedKey.get()).isEqualTo("test-key");
         JsonNode body = jsonMapper.readTree(receivedBody.get());
         assertThat(body.at("/systemInstruction/parts/0/text").asString()).isEqualTo("시스템 규칙");
         assertThat(body.at("/contents/1/role").asString()).isEqualTo("model");
         assertThat(body.at("/contents/2/parts/0/text").asString()).isEqualTo("수정 지시");
         JsonNode config = body.get("generationConfig");
-        assertThat(config.get("temperature").asDouble()).isEqualTo(0.2);
+        assertThat(config.has("temperature")).isFalse();
+        assertThat(config.has("topP")).isFalse();
+        assertThat(config.has("topK")).isFalse();
         assertThat(config.get("maxOutputTokens").asInt()).isEqualTo(1500);
         assertThat(config.get("responseMimeType").asString()).isEqualTo("application/json");
-        assertThat(config.at("/thinkingConfig/thinkingBudget").asInt()).isEqualTo(512);
+        assertThat(config.at("/thinkingConfig/thinkingLevel").asString()).isEqualTo("MINIMAL");
+        assertThat(config.get("thinkingConfig").has("thinkingBudget")).isFalse();
         assertThat(config.at("/responseSchema/type").asString()).isEqualTo("OBJECT");
     }
 
