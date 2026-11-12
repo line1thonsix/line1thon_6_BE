@@ -34,8 +34,9 @@ public class PrepareOutputParser implements AiOutputParser<PrepareOutput> {
             throw new AiOutputInvalidException(List.of("최상위 값이 JSON 객체가 아닙니다"));
         }
         List<String> problems = new ArrayList<>();
-        List<String> choices = stringList(root, "choices", PreparePrompt.CHOICE_COUNT, problems);
-        List<String> hints = stringList(root, "hints", PreparePrompt.HINT_COUNT, problems);
+        List<String> choices = stringList(root, "choices", PreparePrompt.MIN_CHOICE_COUNT,
+                PreparePrompt.MAX_CHOICE_COUNT, problems);
+        List<String> hints = stringList(root, "hints", PreparePrompt.HINT_COUNT, PreparePrompt.HINT_COUNT, problems);
         String referenceAnswer = nonBlankString(root, "reference_answer", problems);
         if (!problems.isEmpty()) {
             throw new AiOutputInvalidException(problems);
@@ -43,7 +44,8 @@ public class PrepareOutputParser implements AiOutputParser<PrepareOutput> {
         return new PrepareOutput(choices, hints, referenceAnswer);
     }
 
-    private static List<String> stringList(JsonNode root, String key, int expectedSize, List<String> problems) {
+    private static List<String> stringList(JsonNode root, String key, int minSize, int maxSize,
+                                           List<String> problems) {
         JsonNode node = root.get(key);
         if (node == null || node.isNull()) {
             problems.add(key + " 키가 없습니다");
@@ -53,8 +55,9 @@ public class PrepareOutputParser implements AiOutputParser<PrepareOutput> {
             problems.add(key + "는 문자열 배열이어야 합니다");
             return List.of();
         }
-        if (node.size() != expectedSize) {
-            problems.add(key + "는 정확히 " + expectedSize + "개여야 합니다 (현재 " + node.size() + "개)");
+        if (node.size() < minSize || node.size() > maxSize) {
+            String count = minSize == maxSize ? "정확히 " + minSize : minSize + "~" + maxSize;
+            problems.add(key + "는 " + count + "개여야 합니다 (현재 " + node.size() + "개)");
         }
         List<String> values = new ArrayList<>();
         for (int i = 0; i < node.size(); i++) {

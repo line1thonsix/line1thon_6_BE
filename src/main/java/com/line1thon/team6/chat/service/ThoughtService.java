@@ -7,6 +7,8 @@ import com.line1thon.team6.chat.dto.ThoughtSubmitResponse;
 import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.chat.entity.Thought;
 import com.line1thon.team6.chat.repository.ThoughtRepository;
+import com.line1thon.team6.global.exception.BusinessException;
+import com.line1thon.team6.global.exception.GlobalErrorCode;
 import com.line1thon.team6.session.entity.GuestSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,11 @@ public class ThoughtService {
 
         LockService.StartResult started = lockService.startJob(session, chatId, AnalysisMode.COMPARE);
         Chat chat = started.chat();
+        Integer selectedChoice = request.selectedChoice();
+        if (started.created() && selectedChoice != null
+                && (selectedChoice < 0 || selectedChoice >= chat.getChoices().size())) {
+            throw new BusinessException(GlobalErrorCode.INVALID_INPUT, "칩 번호가 올바르지 않아요.");
+        }
         Thought thought = started.created()
                 ? thoughtRepository.save(Thought.create(chat, request.content(), request.selectedChoice()))
                 : thoughtRepository.findByChat(chat).orElseThrow(() -> new IllegalStateException(
