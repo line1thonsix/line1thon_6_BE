@@ -163,10 +163,10 @@ class BasicFlowTest {
         assertThat(request.callType()).isEqualTo(AiCallType.BASIC);
         assertThat(request.maxOutputTokens()).isEqualTo(1500);
         assertThat(request.messages().getFirst().text())
-                .contains("질문:\n\nusers가 undefined라고 나와요")
-                .contains("코드:\n\nusers.map(u => u.name)")
+                .contains("<USER_QUESTION>\nusers가 undefined라고 나와요\n</USER_QUESTION>")
+                .contains("<USER_CODE>\nusers.map(u => u.name)\n</USER_CODE>")
                 .doesNotContain("기준 답변 전문")
-                .doesNotContain("<thought>");
+                .doesNotContain("<USER_THOUGHT>", "<REFERENCE_ANSWER>");
     }
 
     @Test
