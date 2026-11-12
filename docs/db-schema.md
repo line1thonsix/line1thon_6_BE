@@ -51,7 +51,7 @@ erDiagram
 | prepare_status | VARCHAR(20) | NOT NULL, DEFAULT 'PREPARING' | PREPARING / DONE / FAILED |
 | prepare_started_at | DATETIME(6) | NOT NULL | 선생성 시작(재시도 포함) 시각. 1분 넘게 PREPARING이면 FAILED 처리할 때 사용 |
 | hint_level | TINYINT | NOT NULL, DEFAULT 0 | 0~2 |
-| choices | JSON | NULL | 칩 3개 `["...", "...", "..."]` |
+| choices | JSON | NULL | 칩 1~3개 `["..."]` ~ `["...", "...", "..."]` |
 | hints | JSON | NULL | 힌트 2단계 `["힌트1", "힌트2"]`. 힌트 기록 테이블은 만들지 않음 |
 | reference_answer | TEXT | NULL | 기준 답변. `status`가 `UNLOCKED_*`일 때만 응답에 포함 |
 | created_at | DATETIME(6) | NOT NULL |  |
