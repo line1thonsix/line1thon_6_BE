@@ -225,7 +225,9 @@ class PrepareRetryTest {
     void 칩이나_힌트_개수가_틀리거나_기준_답변이_비면_저장하지_않는다() {
         Long chatId = newChat(session);
 
-        assertThatThrownBy(() -> chatService.completePrepare(chatId, List.of("칩1", "칩2"), HINTS, "기준 답변"))
+        assertThatThrownBy(() -> chatService.completePrepare(chatId, List.of(), HINTS, "기준 답변"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> chatService.completePrepare(chatId, List.of("1", "2", "3", "4"), HINTS, "기준 답변"))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> chatService.completePrepare(chatId, CHOICES, List.of("힌트1"), "기준 답변"))
                 .isInstanceOf(IllegalArgumentException.class);

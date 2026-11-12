@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
  * POST /api/chats/{chatId}/thoughts 요청.
  * 문자 수는 앞뒤 공백을 뺀 뒤 센다 (API 명세서 공통 규칙). 그래서 생성자에서 먼저 공백을 지운다.
  * 2,000자 초과는 400 INVALID_INPUT, 30자 미만과 서로 다른 문자 수는 ThoughtValidator가 따로 검사한다.
+ * selectedChoice는 선택하지 않으면 null, 선택하면 실제 choices 배열 길이 미만의 0-based 인덱스다.
  */
 public record ThoughtSubmitRequest(
         @NotNull(message = "생각을 입력해 주세요.")

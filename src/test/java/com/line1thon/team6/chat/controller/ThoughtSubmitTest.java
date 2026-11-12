@@ -17,6 +17,8 @@ import com.line1thon.team6.session.entity.GuestSession;
 import com.line1thon.team6.session.repository.GuestSessionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -140,6 +142,31 @@ class ThoughtSubmitTest {
         Thought thought = thoughtOf(chatId);
         assertThat(thought.getContent()).isEqualTo(THOUGHT);
         assertThat(thought.getSelectedChoice()).isEqualTo(2);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2})
+    void 칩이_적어도_실제_마지막_칩을_선택해_제출할_수_있다(int count) throws Exception {
+        Long chatId = preparingChat(session);
+        chatService.completePrepare(chatId, List.of("칩1", "칩2").subList(0, count),
+                List.of("힌트1", "힌트2"), "기준 답변");
+
+        submit(chatId, body(THOUGHT, count - 1)).andExpect(status().isAccepted());
+        assertThat(thoughtOf(chatId).getSelectedChoice()).isEqualTo(count - 1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2})
+    void 생성되지_않은_칩_번호는_400이고_분석_작업을_남기지_않는다(int count) throws Exception {
+        Long chatId = preparingChat(session);
+        chatService.completePrepare(chatId, List.of("칩1", "칩2").subList(0, count),
+                List.of("힌트1", "힌트2"), "기준 답변");
+
+        submit(chatId, body(THOUGHT, count))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+        assertThat(analysisJobRepository.findByChatId(chatId)).isEmpty();
+        assertThat(thoughtRepository.findByChat(chatRepository.findById(chatId).orElseThrow())).isEmpty();
     }
 
     @Test

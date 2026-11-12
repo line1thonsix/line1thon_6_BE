@@ -3,6 +3,7 @@ package com.line1thon.team6.ai.prepare;
 import com.line1thon.team6.ai.client.LlmMessage;
 import com.line1thon.team6.ai.client.LlmRequest;
 import com.line1thon.team6.ai.entity.AiCallType;
+import com.line1thon.team6.chat.entity.Chat;
 import com.line1thon.team6.chat.entity.QuestionType;
 
 import java.util.List;
@@ -19,16 +20,17 @@ import static com.line1thon.team6.ai.service.JsonSchemas.string;
 final class PreparePrompt {
 
     /** ai_usage_log.prompt_version */
-    static final String VERSION = "prepare-tmp1";
+    static final String VERSION = "prepare-tmp2";
 
     /** 작업별 최대 출력 토큰 (R4) */
     static final int MAX_OUTPUT_TOKENS = 1500;
 
-    static final int CHOICE_COUNT = 3;
+    static final int MIN_CHOICE_COUNT = Chat.MIN_CHOICES;
+    static final int MAX_CHOICE_COUNT = Chat.MAX_CHOICES;
     static final int HINT_COUNT = 2;
 
     static final Map<String, Object> SCHEMA = object(Map.of(
-            "choices", array(string(), CHOICE_COUNT, CHOICE_COUNT),
+            "choices", array(string(), MIN_CHOICE_COUNT, MAX_CHOICE_COUNT),
             "hints", array(string(), HINT_COUNT, HINT_COUNT),
             "reference_answer", string()));
 
@@ -36,7 +38,9 @@ final class PreparePrompt {
             너는 개발 학습 서비스 Deveil의 튜터다. 사용자가 답을 보기 전에 스스로 생각하도록 돕는다.
             사용자의 질문(과 코드)을 보고 다음 세 가지를 만든다.
 
-            1. choices: 사용자가 생각을 시작할 때 고를 수 있는 짧은 관점 정확히 3개.
+            1. choices: 사용자가 생각을 시작할 때 고를 수 있는 짧은 관점 1~3개.
+               질문에 맞는 서로 다른 관점만 만든다. 적절한 관점이 1~2개면 3개를 억지로 채우지 않는다.
+               같은 의미를 표현만 바꿔 반복하거나 관련 없는 관점을 추가하지 않는다.
                질문 문장이나 지시문이 아니라 명사구로 쓴다. 정답을 드러내지 않는다.
             2. hints: 정답을 직접 말하지 않는 힌트 정확히 2개. 두 번째 힌트가 첫 번째보다 구체적이다.
             3. reference_answer: 나중에 사용자의 생각과 비교할 기준 답변. 원인, 근거, 확인 방법을 포함한다.
