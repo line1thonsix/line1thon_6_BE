@@ -12,8 +12,7 @@ import java.time.Duration;
  * @param model          DEVEIL_MODEL
  * @param baseUrl        Gemini API 주소
  * @param timeout        호출 한 번의 제한 시간 (15초)
- * @param temperature    0.2
- * @param thinkingBudget 생각 토큰 상한. 기본값(제한 없음)이면 최대 출력 토큰을 생각에 다 써서 JSON이 잘린다
+ * @param thinkingLevel  Gemini 3 추론 수준. 기본 MINIMAL (비용·응답 시간 우선)
  * @param maxAttempts    형식 오류 시 첫 호출 포함 최대 호출 수 (R5)
  */
 @ConfigurationProperties(prefix = "deveil.ai")
@@ -22,10 +21,13 @@ public record AiProperties(
         String model,
         String baseUrl,
         Duration timeout,
-        double temperature,
-        int thinkingBudget,
+        ThinkingLevel thinkingLevel,
         int maxAttempts
 ) {
+
+    public enum ThinkingLevel {
+        MINIMAL, LOW, MEDIUM, HIGH
+    }
 
     public boolean hasApiKey() {
         return apiKey != null && !apiKey.isBlank();

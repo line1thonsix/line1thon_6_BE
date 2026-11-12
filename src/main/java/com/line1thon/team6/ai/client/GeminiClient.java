@@ -79,11 +79,10 @@ public class GeminiClient implements LlmClient {
 
     private Map<String, Object> toBody(LlmRequest request) {
         Map<String, Object> generationConfig = new LinkedHashMap<>();
-        generationConfig.put("temperature", properties.temperature());
         generationConfig.put("maxOutputTokens", request.maxOutputTokens());
         generationConfig.put("responseMimeType", "application/json");
         generationConfig.put("responseSchema", request.responseSchema());
-        generationConfig.put("thinkingConfig", Map.of("thinkingBudget", properties.thinkingBudget()));
+        generationConfig.put("thinkingConfig", Map.of("thinkingLevel", properties.thinkingLevel().name()));
 
         List<Map<String, Object>> contents = request.messages().stream()
                 .map(m -> Map.<String, Object>of(
