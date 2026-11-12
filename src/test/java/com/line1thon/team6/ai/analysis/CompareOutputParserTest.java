@@ -84,13 +84,12 @@ class CompareOutputParserTest {
     }
 
     @Test
-    void 판단_보류는_인용이_필수라_빈_인용이면_형식_오류() {
-        assertThatThrownBy(() -> parse("""
+    void 판단_보류는_빈_인용도_허용하고_null로_저장한다() {
+        assertThat(parse("""
                 {"common": [], "supplement": [], "unique": [], "error": [],
                  "judgment_hold": [{"title": "t", "user_quote": "", "reason": "r", "follow_up_question": "q"}]}
                 """))
-                .isInstanceOfSatisfying(AiOutputInvalidException.class, e -> assertThat(e.getProblems())
-                        .containsExactly("judgment_hold[0].user_quote가 비어 있습니다"));
+                .containsExactly(new CompareFinding("UNDETERMINED", "t", null, null, "r", "q"));
     }
 
     @Test

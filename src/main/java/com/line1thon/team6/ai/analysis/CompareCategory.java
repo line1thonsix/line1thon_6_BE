@@ -12,7 +12,7 @@ enum CompareCategory {
     SUPPLEMENT("supplement", "COMPLEMENT", false, List.of("title", "user_quote", "ai_view", "reason")),
     UNIQUE("unique", "UNIQUE", true, List.of("title", "user_quote", "reason")),
     ERROR("error", "CONFLICT", true, List.of("title", "user_quote", "conflict", "how_to_check")),
-    JUDGMENT_HOLD("judgment_hold", "UNDETERMINED", true,
+    JUDGMENT_HOLD("judgment_hold", "UNDETERMINED", false,
             List.of("title", "user_quote", "reason", "follow_up_question"));
 
     private final String key;
@@ -37,7 +37,7 @@ enum CompareCategory {
         return category;
     }
 
-    /** false면 user_quote가 ""일 수 있다 (관련 발언 없음). AI 전달 명세 R2상 supplement만 해당 */
+    /** false면 user_quote가 ""일 수 있다 (관련 발언 없음). R1 명세상 supplement와 judgment_hold가 해당 */
     boolean quoteRequired() {
         return quoteRequired;
     }
