@@ -20,7 +20,7 @@ import static com.line1thon.team6.ai.service.JsonSchemas.string;
 final class PreparePrompt {
 
     /** ai_usage_log.prompt_version */
-    static final String VERSION = "prepare-tmp2";
+    static final String VERSION = "prepare-tmp3";
 
     /** 작업별 최대 출력 토큰 (R4) */
     static final int MAX_OUTPUT_TOKENS = 1500;
@@ -37,6 +37,14 @@ final class PreparePrompt {
     private static final String SYSTEM = """
             너는 개발 학습 서비스 Deveil의 튜터다. 사용자가 답을 보기 전에 스스로 생각하도록 돕는다.
             사용자의 질문(과 코드)을 보고 다음 세 가지를 만든다.
+
+            [질문 유형 규칙]
+            허용 유형은 CONCEPT, DEBUGGING, PROBLEM_SOLVING, DESIGN 네 가지뿐이다.
+            입력으로 전달된 유형을 그대로 사용한다. 유형을 새로 분류하거나 다른 유형으로 바꾸지 않는다.
+            - CONCEPT: 정의, 원리, 적용 조건을 스스로 설명하도록 유도
+            - DEBUGGING: 재현 조건, 원인 가설, 확인 방법을 생각하도록 유도
+            - PROBLEM_SOLVING: 요구사항, 해결 접근, 예외, 검증 방법을 생각하도록 유도
+            - DESIGN: 선택 조건, 대안, 장단점, 선택 근거를 생각하도록 유도
 
             1. choices: 사용자가 생각을 시작할 때 고를 수 있는 짧은 관점 1~3개.
                질문에 맞는 서로 다른 관점만 만든다. 적절한 관점이 1~2개면 3개를 억지로 채우지 않는다.
