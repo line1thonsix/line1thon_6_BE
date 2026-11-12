@@ -18,16 +18,18 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 | 작업 | 최대 출력 토큰 (R4) | 프롬프트 버전 (`ai_usage_log.prompt_version`) |
 | --- | --- | --- |
 | 질문 생성 (PREPARE) | 1,500 | `prepare-tmp2` |
-| 비교 분석 (COMPARE) | 2,500 | `comparison_v1.1.0` |
-| 기초 설명 (BASIC) | 1,500 | `learning_v1.1.0` |
+| 비교 분석 (COMPARE) | 2,500 | `comparison_v1.1.0-r2` |
+| 기초 설명 (BASIC) | 1,500 | `learning_v1.1.0-r2` |
 
 ### R1 프롬프트 원문과 입력
 
 - 원문: [comparison_v1.1.0](https://app.notion.com/p/comparison_v1-1-0-415cdea39fa18174b2f5deb320bafee1), [learning_v1.1.0](https://app.notion.com/p/learning_v1-1-0-415cdea39fa181efac6feded9f3bb61f), [security_rules_v1.1.0](https://app.notion.com/p/security_rules_v1-1-0-415cdea39fa18104a62bfa61f15ba70f), [변수 명세](https://app.notion.com/p/R1_prompt_variable_spec-415cdea39fa181acb56dcc9d1ecf8152).
-- `src/main/resources/prompts/`에 노션 원문의 문구와 변수 표기(`{{{{변수}}}}`)를 보존합니다. 역할·보안·작성·출력 규칙은 system, 입력 구획은 user로 분리합니다. 원문에 없는 보완 문장은 추가하지 않았습니다.
+- `src/main/resources/prompts/`의 비교·기초 원문은 AI 담당이 별도 전달한 `comparison_v1.1.0.txt`, `learning_v1.1.0.txt`를 파일 그대로 사용합니다. 공통 보안 규칙은 기존 `security_rules_v1.1.0`을 공유합니다. 역할·보안·작성·출력 규칙은 system, 입력 구획은 user로 분리합니다. 원문에 없는 보완 문장은 추가하지 않았습니다.
+- 원문 파일명은 v1.1.0을 유지하고, 사용 기록 버전에 `-r2`를 붙여 이전 노션 복사본과 구분합니다.
 - 비교 분석에는 유형·질문·코드·최초 생각·기준 답변을 전달합니다. 기초 설명에는 유형·질문·코드만 전달하며 기준 답변과 생각은 보내지 않습니다. 코드가 없으면 `(코드 없음)`입니다.
 - 공통 보안 규칙은 `AnalysisPromptTemplate.SECURITY_RULE` 상수로 공유합니다. 출력 스키마는 system의 JSON 문자열과 Gemini `responseSchema` 설정 양쪽으로 보냅니다.
-- 원문 확인 사항: 노션 비교 프롬프트 8번은 `user_quote는` 다음 인용 대상이 빠진 채 `안에 실제 존재하는…`으로 이어집니다. 누락된 문구를 추측해 복원하지 않았으며, 인용 대상·빈 인용 처리는 R1 변수 명세와 서버 검증을 따릅니다.
+- 전달 파일에는 `<USER_QUESTION>`, `<USER_CODE>`, 비교 입력의 `<USER_THOUGHT>`, `<REFERENCE_ANSWER>` 구획이 포함돼 있습니다. 이전 노션 복사본에서 빠졌던 비교 규칙 8번의 인용 대상 `<USER_THOUGHT>`도 전달 파일 원문으로 반영했습니다. 사용자 원문 속 변수 표기는 재치환하지 않습니다.
+- 기초 설명은 원문의 화면 표시명(핵심 요약·예시 코드·먼저 관찰해요·그다음 바꿔요)과 기존 네 필드 유지 지침을 사용합니다. API 응답 키나 프론트 화면 구조를 바꾸는 변경은 아닙니다.
 - 머지 전 확인: **새 Gemini 키로 실제 호출 확인 후 머지**. 실제 응답 품질·잘림·응답 시간은 별도 검증해야 합니다.
 
 ## 1. 질문 생성 (PREPARE)

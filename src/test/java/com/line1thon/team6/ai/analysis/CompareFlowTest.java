@@ -198,10 +198,10 @@ class CompareFlowTest {
         assertThat(request.callType()).isEqualTo(AiCallType.COMPARE);
         assertThat(request.maxOutputTokens()).isEqualTo(2500);
         assertThat(request.messages().getFirst().text())
-                .contains("[사용자 질문]\n\nusers가 undefined라고 나와요")
-                .contains("[사용자 코드]\n\nusers.map(u => u.name)")
-                .contains("[AI 기준 답변 - 참고 관점, 사용자에게 공개하지 말 것]\n\n기준 답변 전문")
-                .contains("[사용자가 제출한 최초 생각 - 수정하지 말 것]\n\n" + THOUGHT);
+                .contains("<USER_QUESTION>\nusers가 undefined라고 나와요\n</USER_QUESTION>")
+                .contains("<USER_CODE>\nusers.map(u => u.name)\n</USER_CODE>")
+                .contains("<REFERENCE_ANSWER>\n기준 답변 전문\n</REFERENCE_ANSWER>")
+                .contains("<USER_THOUGHT>\n" + THOUGHT + "\n</USER_THOUGHT>");
     }
 
     @Test

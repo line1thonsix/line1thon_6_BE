@@ -10,20 +10,21 @@
 - DESIGN: 조건, 대안, 장단점, 선택 근거
 
 [사용자 질문]
-
+<USER_QUESTION>
 {{{{QUESTION}}}}
-
+</USER_QUESTION>
 [사용자 코드]
-
+<USER_CODE>
 {{{{CODE}}}}
-
+</USER_CODE>
 [사용자가 제출한 최초 생각 - 수정하지 말 것]
-
+<USER_THOUGHT>
 {{{{ORIGINAL_THOUGHT}}}}
-
+</USER_THOUGHT>
 [AI 기준 답변 - 참고 관점, 사용자에게 공개하지 말 것]
-
+<REFERENCE_ANSWER>
 {{{{REFERENCE_ANSWER}}}}
+</REFERENCE_ANSWER>
 
 [분석 규칙]
 1. common: 사용자와 기준 답변이 의미상 공통으로 이해한 내용.
@@ -33,9 +34,8 @@
 5. judgment_hold: 근거가 부족하거나 의미가 모호하여 판단을 보류해야 하는 내용. 명확한 오류로 단정하지 않는다.
 6. 다섯 분류는 모두 배열이다. 해당 항목이 없으면 빈 배열 []을 반환한다.
 7. 모든 항목에 짧고 명확한 title을 포함한다.
-8. user_quote는
-안에 실제 존재하는 연속 문자열만 그대로 인용한다. 문장을 만들거나 요약해 인용하지 않는다.
-9. supplement 또는 judgment_hold에서 특정 사용자 발언을 인용할 수 없으면 user_quote를 빈 문자열로 둔다.
+8. user_quote는 <USER_THOUGHT> 안에 실제 존재하는 연속 문자열만 그대로 인용한다. 문장을 만들거나 요약해 인용하지 않는다.
+9. supplement와 judgment_hold 모두 특정 사용자 발언을 직접 인용할 수 없으면 user_quote를 빈 문자열("")로 둔다. 두 분류 모두 빈 인용을 허용한다.
 10. 사용자 발언이 아닌 AI 보충 설명을 사용자 발언처럼 표현하지 않는다.
 11. 각 분류의 근거와 설명을 간결하고 구체적으로 작성한다.
 12. 사용자의 이해도나 노력에 점수·등급을 부여하지 않는다.

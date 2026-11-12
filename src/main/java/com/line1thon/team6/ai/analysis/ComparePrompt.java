@@ -18,8 +18,11 @@ import static com.line1thon.team6.ai.service.JsonSchemas.string;
  */
 final class ComparePrompt {
 
-    /** ai_usage_log.prompt_version */
-    static final String VERSION = "comparison_v1.1.0";
+    /** AI 담당 전달 원문 리소스명 */
+    private static final String SOURCE_VERSION = "comparison_v1.1.0";
+
+    /** ai_usage_log.prompt_version. 이전 노션 복사본과 전달 파일 반영본을 구분한다 */
+    static final String VERSION = SOURCE_VERSION + "-r2";
 
     /** 작업별 최대 출력 토큰 (R4) */
     static final int MAX_OUTPUT_TOKENS = 2500;
@@ -42,7 +45,7 @@ final class ComparePrompt {
     }
 
     private static final AnalysisPromptTemplate TEMPLATE = AnalysisPromptTemplate.load(
-            VERSION, "[질문 유형 및 비교 관점]", "[분석 규칙]");
+            SOURCE_VERSION, "[질문 유형 및 비교 관점]", "[분석 규칙]");
     private static final String SYSTEM = TEMPLATE.system("COMPARISON_SCHEMA", SCHEMA);
 
     private ComparePrompt() {
