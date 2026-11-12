@@ -21,6 +21,19 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 | 비교 분석 (COMPARE) | 2,500 | `comparison_v1.1.0-r2` |
 | 기초 설명 (BASIC) | 1,500 | `learning_v1.1.0-r2` |
 
+### Gemini 모델과 추론 설정
+
+- 기본 모델: `gemini-3.5-flash-lite` (`DEVEIL_MODEL`로 변경 가능). 2.5 Flash는 신규 사용자 실제 호출에서 404가 발생해 전환합니다.
+- `thinkingConfig.thinkingLevel`을 사용하며 기본값은 `MINIMAL`입니다. `DEVEIL_THINKING_LEVEL`로 `LOW`, `MEDIUM`, `HIGH`도 선택할 수 있습니다.
+- 구형 `thinkingBudget`과 폐기된 샘플링 파라미터 `temperature`는 보내지 않습니다. JSON 스키마, 호출당 15초, 자동 형식 재호출 최초 포함 3회는 유지합니다.
+- [Google의 3.5 Flash-Lite 전환 안내](https://aistudio.google.com/docs/whats-new-gemini-3.6#migrate-to-gemini-3-5-flash-lite)를 따릅니다. 기존 배포 환경의 `DEVEIL_MODEL`이 2.5로 설정돼 있으면 별도로 변경해야 합니다.
+
+### 2026-11-12 로컬 실제 호출 확인
+
+- 3.5 Flash-Lite + `MINIMAL`에서 선생성 2회·비교 분석 1회·기초 설명 1회가 모두 첫 호출에 성공했습니다. 비교 약 5.0초, 기초 약 2.1초였고, 모두 `STOP`으로 종료됐습니다. 형식 수정 재호출·출력 잘림·인용 검증으로 버린 항목은 없었습니다.
+- 추가 `LOW` 검증에서는 Google HTTP 503으로 흐름이 중단된 사례가 두 번 있었습니다. 추론 수준이 원인인지는 확인되지 않았으며, API 오류를 자동 재호출하지 않는 정책은 유지합니다.
+- 형식·연결 검증과 내용 품질은 별개입니다. 실제 응답에서 잘못된 주장을 공통·고유로 분류한 사례가 있어, 분류 기준과 프롬프트 품질은 후속 평가가 필요합니다.
+
 ### R1 프롬프트 원문과 입력
 
 - 원문: [comparison_v1.1.0](https://app.notion.com/p/comparison_v1-1-0-415cdea39fa18174b2f5deb320bafee1), [learning_v1.1.0](https://app.notion.com/p/learning_v1-1-0-415cdea39fa181efac6feded9f3bb61f), [security_rules_v1.1.0](https://app.notion.com/p/security_rules_v1-1-0-415cdea39fa18104a62bfa61f15ba70f), [변수 명세](https://app.notion.com/p/R1_prompt_variable_spec-415cdea39fa181acb56dcc9d1ecf8152).
