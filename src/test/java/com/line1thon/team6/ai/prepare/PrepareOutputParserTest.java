@@ -2,6 +2,8 @@ package com.line1thon.team6.ai.prepare;
 
 import com.line1thon.team6.ai.exception.AiOutputInvalidException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,6 +24,31 @@ class PrepareOutputParserTest {
         assertThat(output.referenceAnswer()).isEqualTo("기준 답변");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"[\"a\"]", "[\"a\",\"b\"]", "[\"a\",\"b\",\"c\"]"})
+    void 칩은_1개부터_3개까지_허용한다(String choices) {
+        PrepareOutput output = parser.parse("{\"choices\":" + choices
+                + ",\"hints\":[\"h1\",\"h2\"],\"reference_answer\":\"r\"}");
+        assertThat(JsonMapper.builder().build().writeValueAsString(output.choices())).isEqualTo(choices);
+        assertThat(output.hints()).containsExactly("h1", "h2");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"[]", "[\"a\",\"b\",\"c\",\"d\"]"})
+    void 칩이_없거나_4개_이상이면_거부한다(String choices) {
+        assertThatThrownBy(() -> parser.parse("{\"choices\":" + choices
+                + ",\"hints\":[\"h1\",\"h2\"],\"reference_answer\":\"r\"}"))
+                .isInstanceOf(AiOutputInvalidException.class);
+    }
+
+    @Test
+    void 칩이_1개여도_빈_문자열이면_거부한다() {
+        assertThatThrownBy(() -> parser.parse("""
+                {"choices": [" "], "hints": ["h1", "h2"], "reference_answer": "r"}
+                """)).isInstanceOfSatisfying(AiOutputInvalidException.class,
+                        e -> assertThat(e.getProblems()).contains("choices[0]는 비어 있지 않은 문자열이어야 합니다"));
+    }
+
     @Test
     void 코드_블록으로_감싼_출력도_읽는다() {
         PrepareOutput output = parser.parse("""
@@ -35,11 +62,11 @@ class PrepareOutputParserTest {
     @Test
     void 개수가_틀리면_문제를_모두_모아_알려준다() {
         assertThatThrownBy(() -> parser.parse("""
-                {"choices": ["a", "b"], "hints": ["h1", "h2", "h3"], "reference_answer": ""}
+                {"choices": [], "hints": ["h1", "h2", "h3"], "reference_answer": ""}
                 """))
                 .isInstanceOfSatisfying(AiOutputInvalidException.class, e -> assertThat(e.getProblems())
                         .containsExactly(
-                                "choices는 정확히 3개여야 합니다 (현재 2개)",
+                                "choices는 1~3개여야 합니다 (현재 0개)",
                                 "hints는 정확히 2개여야 합니다 (현재 3개)",
                                 "reference_answer는 비어 있지 않은 문자열이어야 합니다"));
     }

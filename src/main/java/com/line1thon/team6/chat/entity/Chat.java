@@ -30,6 +30,10 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Chat {
 
+    /** 질문에 맞춰 생성하는 살펴볼 지점 칩의 개수 */
+    public static final int MIN_CHOICES = 1;
+    public static final int MAX_CHOICES = 3;
+
     /** 힌트는 2단계까지. 2단계를 보면 기초 학습을 고를 수 있다 */
     public static final int MAX_HINT_LEVEL = 2;
 
@@ -86,7 +90,7 @@ public class Chat {
     @Column(nullable = false)
     private int hintLevel;
 
-    /** 선택지 칩 3개. 선생성이 끝나면 채움 */
+    /** 선택지 칩 1~3개. 선생성이 끝나면 채움 */
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> choices;
 
@@ -126,13 +130,13 @@ public class Chat {
     }
 
     /**
-     * 선생성 결과 형식 검사 (칩 3개, 힌트 2개, 기준 답변).
+     * 선생성 결과 형식 검사 (칩 1~3개, 힌트 2개, 기준 답변).
      * 상태 변경(PREPARING → DONE/FAILED)은 시간 초과 처리와 겹쳐도 덮어쓰지 않도록
      * ChatRepository의 조건부 UPDATE로 한다.
      */
     public static void validatePrepareResult(List<String> choices, List<String> hints, String referenceAnswer) {
-        if (choices == null || choices.size() != 3) {
-            throw new IllegalArgumentException("칩은 3개여야 합니다: " + (choices == null ? null : choices.size()));
+        if (choices == null || choices.size() < MIN_CHOICES || choices.size() > MAX_CHOICES) {
+            throw new IllegalArgumentException("칩은 1~3개여야 합니다: " + (choices == null ? null : choices.size()));
         }
         if (hints == null || hints.size() != 2) {
             throw new IllegalArgumentException("힌트는 2개여야 합니다: " + (hints == null ? null : hints.size()));

@@ -81,8 +81,8 @@ public class CompareOutputParser {
         if (findings.isEmpty()) {
             throw new AiOutputInvalidException(List.of(dropped.isEmpty()
                     ? "항목이 하나도 없습니다. 다섯 분류 중 해당하는 항목을 1개 이상 작성하세요"
-                    : "user_quote가 <thought>에 그대로 있지 않아 모든 항목을 버렸습니다 " + dropped
-                    + ". user_quote는 <thought>의 문장을 한 글자도 바꾸지 않고 인용하세요"));
+                    : "user_quote가 사용자가 제출한 최초 생각에 그대로 있지 않아 모든 항목을 버렸습니다 " + dropped
+                    + ". user_quote는 사용자가 제출한 최초 생각의 문장을 한 글자도 바꾸지 않고 인용하세요"));
         }
         if (!dropped.isEmpty()) {
             // 인용 원문은 사용자 내용이라 로그에 남기지 않는다

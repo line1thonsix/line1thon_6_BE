@@ -35,7 +35,7 @@ public class ChatController {
 
     /** 질문 생성. 새로 만들면 201, 같은 전송 ID로 이미 있으면 200 */
     @Operation(summary = "질문 생성",
-            description = "채팅을 PREPARING으로 저장하고 바로 응답합니다(201). 선생성(칩, 힌트, 기준 답변)은 백그라운드에서 만들어지며 "
+            description = "채팅을 PREPARING으로 저장하고 바로 응답합니다(201). 선생성(칩 1~3개, 힌트 2개, 기준 답변)은 백그라운드에서 만들어지며 "
                     + "GET /api/chats/{chatId}를 2초마다 조회해 받습니다. 같은 clientRequestId로 다시 보내면 200으로 기존 대화를 돌려줍니다.")
     @PostMapping
     public ResponseEntity<ChatCreateResponse> create(@CurrentSession GuestSession session,
@@ -58,7 +58,7 @@ public class ChatController {
 
     /** 채팅 상세 조회 (새로고침 복구, 선생성 폴링). 남의 대화나 없는 대화는 404 */
     @Operation(summary = "채팅 상세 조회 (새로고침 복구)",
-            description = "선생성 상태, 칩, 힌트 단계, 최초 생각, 분석 작업(mode, status, 재시도 횟수)을 한 번에 돌려줘 화면을 복원합니다. "
+            description = "선생성 상태, 칩 1~3개, 힌트 단계, 최초 생각, 분석 작업(mode, status, 재시도 횟수)을 한 번에 돌려줘 화면을 복원합니다. "
                     + "기준 답변과 비교 결과는 넣지 않습니다. prepareStatus가 PREPARING이면 이 API를 2초마다 조회합니다.")
     @GetMapping("/{chatId}")
     public ChatDetailResponse getDetail(@CurrentSession GuestSession session, @PathVariable Long chatId) {

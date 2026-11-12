@@ -153,7 +153,7 @@ class BasicFlowTest {
     }
 
     @Test
-    void AI에는_질문_코드_기준_답변을_보내고_생각은_없다() throws Exception {
+    void AI에는_질문과_코드만_보내고_기준_답변과_생각은_없다() throws Exception {
         given(llmClient.generate(any())).willReturn(new LlmResponse(VALID_OUTPUT, 1, 1, "STOP"));
         awaitJob(startBasic(chatWithAllHints()).jobId());
 
@@ -163,10 +163,10 @@ class BasicFlowTest {
         assertThat(request.callType()).isEqualTo(AiCallType.BASIC);
         assertThat(request.maxOutputTokens()).isEqualTo(1500);
         assertThat(request.messages().getFirst().text())
-                .contains("<question>\nusers가 undefined라고 나와요")
-                .contains("<code>\nusers.map(u => u.name)")
-                .contains("<reference_answer>\n기준 답변 전문")
-                .doesNotContain("<thought>");
+                .contains("<USER_QUESTION>\nusers가 undefined라고 나와요\n</USER_QUESTION>")
+                .contains("<USER_CODE>\nusers.map(u => u.name)\n</USER_CODE>")
+                .doesNotContain("기준 답변 전문")
+                .doesNotContain("<USER_THOUGHT>", "<REFERENCE_ANSWER>");
     }
 
     @Test

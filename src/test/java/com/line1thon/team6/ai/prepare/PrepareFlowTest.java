@@ -18,6 +18,8 @@ import com.line1thon.team6.session.entity.GuestSession;
 import com.line1thon.team6.session.repository.GuestSessionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -36,6 +38,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -149,6 +152,25 @@ class PrepareFlowTest {
             assertThat(log.getResult()).isEqualTo(AiCallResult.SUCCESS);
             assertThat(log.getErrorCode()).isNull();
         });
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2})
+    void 칩이_1개나_2개여도_선생성이_완료되고_상세_조회에_그대로_반환한다(int count) throws Exception {
+        List<String> choices = List.of("인덱스 범위", "반복 횟수").subList(0, count);
+        String output = jsonMapper.writeValueAsString(java.util.Map.of(
+                "choices", choices, "hints", List.of("힌트1", "힌트2"), "reference_answer", "기준 답변"));
+        given(llmClient.generate(any())).willReturn(new LlmResponse(output, 1, 1, "STOP"));
+
+        Created created = createChat();
+        Chat chat = awaitPrepared(created.chatId());
+        assertThat(chat.getPrepareStatus()).isEqualTo(PrepareStatus.DONE);
+        assertThat(chat.getChoices()).containsExactlyElementsOf(choices);
+        String response = mockMvc.perform(get("/api/chats/{chatId}", created.chatId())
+                        .header("X-Guest-Token", token))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(jsonMapper.readTree(response).get("choices"))
+                .isEqualTo(jsonMapper.valueToTree(choices));
     }
 
     @Test
