@@ -61,8 +61,8 @@ class AnalysisPromptTest {
         LlmRequest basic = BasicPrompt.request(input);
         JsonMapper mapper = JsonMapper.builder().build();
 
-        assertThat(ComparePrompt.VERSION).isEqualTo("comparison_v1.1.0-r2");
-        assertThat(BasicPrompt.VERSION).isEqualTo("learning_v1.1.0-r2");
+        assertThat(ComparePrompt.VERSION).isEqualTo("comparison_v1.1.0-r3");
+        assertThat(BasicPrompt.VERSION).isEqualTo("learning_v1.1.0-r3");
         assertThat(compare.systemPrompt()).contains(
                 "기준 답변은 참고 관점이지 절대적인 정답은 아니다.",
                 "user_quote는 <USER_THOUGHT> 안에 실제 존재하는 연속 문자열만 그대로 인용한다.",
@@ -71,6 +71,8 @@ class AnalysisPromptTest {
                 "화면 표시명은 \"핵심 요약\"이다.", "화면 표시명은 \"예시 코드\"다.",
                 "화면 표시명은 \"먼저 관찰해요\"다.", "화면 표시명은 \"그다음 바꿔요\"다.",
                 "이 모델 출력에 임의의 화면별 키를 추가하지 않는다.");
+        assertThat(compare.systemPrompt()).contains("[분류 보완 규칙]", "[공통 원칙]");
+        assertThat(basic.systemPrompt()).contains("[공통 원칙]");
         String compareSchema = compare.systemPrompt().split("아래 구조와 필드만 사용한다.\n", 2)[1];
         String basicSchema = basic.systemPrompt().split("JSON 객체만 출력한다. 아래 네 필드만 사용한다.\n", 2)[1];
         assertThat(mapper.readTree(compareSchema)).isEqualTo(mapper.valueToTree(compare.responseSchema()));

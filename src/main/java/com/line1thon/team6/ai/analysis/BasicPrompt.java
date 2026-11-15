@@ -3,6 +3,7 @@ package com.line1thon.team6.ai.analysis;
 import com.line1thon.team6.ai.client.LlmMessage;
 import com.line1thon.team6.ai.client.LlmRequest;
 import com.line1thon.team6.ai.entity.AiCallType;
+import com.line1thon.team6.ai.service.PromptGuidelines;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,7 +22,7 @@ final class BasicPrompt {
     private static final String SOURCE_VERSION = "learning_v1.1.0";
 
     /** ai_usage_log.prompt_version. 이전 노션 복사본과 전달 파일 반영본을 구분한다 */
-    static final String VERSION = SOURCE_VERSION + "-r2";
+    static final String VERSION = SOURCE_VERSION + "-r3";
 
     /** 작업별 최대 출력 토큰 (R4) */
     static final int MAX_OUTPUT_TOKENS = 1500;
@@ -39,7 +40,8 @@ final class BasicPrompt {
 
     private static final AnalysisPromptTemplate TEMPLATE = AnalysisPromptTemplate.load(
             SOURCE_VERSION, "질문 유형:", "[작성 규칙]");
-    private static final String SYSTEM = TEMPLATE.system("LEARNING_SCHEMA", SCHEMA);
+    private static final String SYSTEM = PromptGuidelines.insertBeforeOutputRules(
+            TEMPLATE.system("LEARNING_SCHEMA", SCHEMA), PromptGuidelines.COMMON);
 
     private BasicPrompt() {
     }
