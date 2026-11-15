@@ -61,8 +61,8 @@ class AnalysisPromptTest {
         LlmRequest basic = BasicPrompt.request(input);
         JsonMapper mapper = JsonMapper.builder().build();
 
-        assertThat(ComparePrompt.VERSION).isEqualTo("comparison_v1.1.0-r3");
-        assertThat(BasicPrompt.VERSION).isEqualTo("learning_v1.1.0-r3");
+        assertThat(ComparePrompt.VERSION).isEqualTo("comparison_v1.1.0-r4");
+        assertThat(BasicPrompt.VERSION).isEqualTo("learning_v1.1.0-r4");
         assertThat(compare.systemPrompt()).contains(
                 "기준 답변은 참고 관점이지 절대적인 정답은 아니다.",
                 "user_quote는 <USER_THOUGHT> 안에 실제 존재하는 연속 문자열만 그대로 인용한다.",
