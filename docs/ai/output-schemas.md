@@ -23,10 +23,17 @@ LLM이 돌려주는 JSON의 형식과, 백엔드 B가 이를 검증해 DB와 API
 
 ### Gemini 모델과 추론 설정
 
-- 기본 모델: `gemini-3.5-flash-lite` (`DEVEIL_MODEL`로 변경 가능). 2.5 Flash는 신규 사용자 실제 호출에서 404가 발생해 전환합니다.
-- `thinkingConfig.thinkingLevel`을 사용하며 기본값은 `MINIMAL`입니다. `DEVEIL_THINKING_LEVEL`로 `LOW`, `MEDIUM`, `HIGH`도 선택할 수 있습니다.
+- 기본 모델: `gemini-3.6-flash` (`DEVEIL_MODEL`로 변경 가능).
+- `thinkingConfig.thinkingLevel`을 사용하며 기본값은 `LOW`입니다. 응답 지연을 고려해 선택했으며 실제 API 흐름을 이 설정으로 확인했습니다.
 - 구형 `thinkingBudget`과 폐기된 샘플링 파라미터 `temperature`는 보내지 않습니다. JSON 스키마, 호출당 15초, 자동 형식 재호출 최초 포함 3회는 유지합니다.
-- [Google의 3.5 Flash-Lite 전환 안내](https://aistudio.google.com/docs/whats-new-gemini-3.6#migrate-to-gemini-3-5-flash-lite)를 따릅니다. 기존 배포 환경의 `DEVEIL_MODEL`이 2.5로 설정돼 있으면 별도로 변경해야 합니다.
+- [Google의 3.6 Flash 문서](https://aistudio.google.com/docs/models/gemini-3.6-flash)를 기준으로 합니다. 기존 배포 환경변수 `DEVEIL_MODEL`과 `DEVEIL_THINKING_LEVEL`이 있으면 함께 변경해야 합니다.
+
+### 2026-11-15 3.6 Flash 로컬 실제 호출 확인
+
+- 로컬 키·H2·실제 채팅 API에서 3.6 Flash + `LOW`로 선생성 2회(2,521ms / 2,495ms), 비교 분석 1회(3,355ms), 기초 설명 1회(4,493ms)가 모두 첫 호출에 성공했습니다. 모두 `STOP`이며 형식 수정 재호출·출력 잘림·인용 검증으로 버린 항목은 없었습니다.
+- 칩 1~3개·힌트 2개, 생각 제출 후 비교 결과와 SELF 잠금 해제, 힌트 2단계 후 기초 설명과 ASSISTED 잠금 해제를 확인했습니다.
+- 총 입력 3,202 / 출력·추론 합계 1,163토큰입니다. 한 질문 사례의 실측이며 평균·상위 지연이나 다른 모델보다 빠르다는 보장은 아닙니다. 출력 분류 품질도 별도 평가해야 합니다.
+- 앞선 3.7 Flash 경로 테스트는 15초 및 로컬 진단 60초에서 선생성 시간 초과로 실패했습니다. 이번 변경에는 3.7 설정이나 타임아웃 확대를 포함하지 않습니다.
 
 ### 2026-11-12 로컬 실제 호출 확인
 

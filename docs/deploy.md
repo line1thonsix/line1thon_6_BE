@@ -37,8 +37,10 @@
 | `CORS_ALLOWED_ORIGINS` | (프론트 배포 주소) | 프론트 배포 후 입력. 없으면 localhost만 허용 |
 | `TZ` | `Asia/Seoul` | 서버 시간대 |
 | `SPRING_JPA_HIBERNATE_DDL_AUTO` | `update` | **첫 배포에서 테이블을 만들기 위한 임시 값.** 테이블이 생기면 삭제해서 prod 기본값 `validate`로 되돌림 |
-| `DEVEIL_MODEL` | (선택) | 기본 `gemini-3.5-flash-lite`. 기존 값이 `gemini-2.5-flash`면 변경하거나 삭제 |
-| `DEVEIL_THINKING_LEVEL` | (선택) | 기본 `MINIMAL`. `MINIMAL` / `LOW` / `MEDIUM` / `HIGH` |
+| `DEVEIL_MODEL` | (선택) | 기본 `gemini-3.6-flash`. 기존 값이 있으면 변경하거나 삭제 |
+| `DEVEIL_THINKING_LEVEL` | (선택) | 기본 `LOW`. `DEVEIL_THINKING_LEVEL=LOW`로 검증 |
+
+3.6 Flash 전환 시 `DEVEIL_MODEL=gemini-3.6-flash`, `DEVEIL_THINKING_LEVEL=LOW`를 함께 확인합니다. 기존 환경변수가 있으면 코드 기본값보다 우선합니다. 기존 Lite로 복귀하려면 `DEVEIL_MODEL=gemini-3.5-flash-lite`, `DEVEIL_THINKING_LEVEL=MINIMAL`을 함께 설정합니다. 호출당 15초와 출력 토큰 제한은 유지합니다.
 
 `${{MySQL.…}}`의 `MySQL`은 Railway의 MySQL 서비스 이름이에요. 서비스 이름을 바꾸면 여기도 같이 바꿔야 해요.
 

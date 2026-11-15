@@ -12,7 +12,7 @@ import java.time.Duration;
  * @param model          DEVEIL_MODEL
  * @param baseUrl        Gemini API 주소
  * @param timeout        호출 한 번의 제한 시간 (15초)
- * @param thinkingLevel  Gemini 3 추론 수준. 기본 MINIMAL (비용·응답 시간 우선)
+ * @param thinkingLevel  Gemini 3 추론 수준. 기본 LOW (응답 지연을 고려한 설정)
  * @param maxAttempts    형식 오류 시 첫 호출 포함 최대 호출 수 (R5)
  */
 @ConfigurationProperties(prefix = "deveil.ai")
