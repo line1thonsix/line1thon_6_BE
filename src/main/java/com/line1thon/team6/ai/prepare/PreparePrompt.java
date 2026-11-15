@@ -21,7 +21,7 @@ import static com.line1thon.team6.ai.service.JsonSchemas.string;
 final class PreparePrompt {
 
     /** ai_usage_log.prompt_version */
-    static final String VERSION = "prepare-tmp4";
+    static final String VERSION = "prepare-tmp5";
 
     /** 작업별 최대 출력 토큰 (R4) */
     static final int MAX_OUTPUT_TOKENS = 1500;
@@ -36,7 +36,7 @@ final class PreparePrompt {
             "reference_answer", string()));
 
     private static final String SYSTEM = """
-            너는 개발 학습 서비스 Deveil의 튜터다. 사용자가 답을 보기 전에 스스로 생각하도록 돕는다.
+            너는 개발 학습 서비스 Stack Overgrow의 튜터다. 사용자가 답을 보기 전에 스스로 생각하도록 돕는다.
             사용자의 질문(과 코드)을 보고 다음 세 가지를 만든다.
 
             [질문 유형 규칙]

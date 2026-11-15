@@ -23,7 +23,7 @@ final class ComparePrompt {
     private static final String SOURCE_VERSION = "comparison_v1.1.0";
 
     /** ai_usage_log.prompt_version. 이전 노션 복사본과 전달 파일 반영본을 구분한다 */
-    static final String VERSION = SOURCE_VERSION + "-r3";
+    static final String VERSION = SOURCE_VERSION + "-r4";
 
     /** 작업별 최대 출력 토큰 (R4) */
     static final int MAX_OUTPUT_TOKENS = 2500;
